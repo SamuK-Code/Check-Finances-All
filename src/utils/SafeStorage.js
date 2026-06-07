@@ -12,6 +12,7 @@ export const STORAGE_KEYS = {
   ALERTS_ENABLED: '@alertsEnabled',
   SOUND_ENABLED: '@soundEnabled',
   COMPLETED_EXPENSES: '@completedExpenses',
+  CASH_TRANSACTIONS: '@cashTransactions',
   BACKUP_PREFIX: '@backup_',
 };
 
