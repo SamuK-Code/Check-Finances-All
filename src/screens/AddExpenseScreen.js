@@ -31,6 +31,14 @@ export default function AddExpenseScreen({ navigation }) {
   const [filterDate, setFilterDate] = useState('all'); // 'all', 'today', 'week', 'month'
   const [filterCard, setFilterCard] = useState('all');
   const [filterType, setFilterType] = useState('all'); // 'all', 'card', 'standalone'
+
+  // FAB menu states
+  const [fabMenuOpen, setFabMenuOpen] = useState(false);
+  const [showCashForm, setShowCashForm] = useState(false);
+  const [cashAmount, setCashAmount] = useState('');
+  const [cashAmountDisplay, setCashAmountDisplay] = useState('');
+  const [cashDate, setCashDate] = useState(getTodayDate());
+  const [cashDescription, setCashDescription] = useState('');
   const getTodayDate = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -49,6 +57,18 @@ export default function AddExpenseScreen({ navigation }) {
     return CATEGORIES.find(c => c.id === categoryId) || CATEGORIES[7];
   };
 
+  const handleCashAmountChange = (text) => {
+    const numeric = text.replace(/\D/g, '');
+    setCashAmount(numeric);
+    const number = parseInt(numeric) / 100;
+    setCashAmountDisplay(
+      new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(number || 0)
+    );
+  };
+
   const handleAmountChange = (text) => {
     const numeric = text.replace(/\D/g, '');
     setAmount(numeric);
@@ -59,6 +79,31 @@ export default function AddExpenseScreen({ navigation }) {
         currency: 'BRL',
       }).format(number || 0)
     );
+  };
+
+  const handleCashSubmit = () => {
+    if (!cashAmount || !cashDescription) {
+      Alert.alert('Erro', 'Preencha o valor e a descrição');
+      return;
+    }
+
+    const numericAmount = parseInt(cashAmount) / 100;
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      Alert.alert('Erro', 'Digite um valor válido');
+      return;
+    }
+
+    addCashTransaction(numericAmount, cashDescription.trim());
+
+    Alert.alert('Sucesso', 'Dinheiro adicionado ao caixa!', [
+      { text: 'OK', onPress: () => {
+        setShowCashForm(false);
+        setCashAmount('');
+        setCashAmountDisplay('');
+        setCashDate(getTodayDate());
+        setCashDescription('');
+      }}
+    ]);
   };
 
   const handleSubmit = () => {
@@ -161,6 +206,94 @@ export default function AddExpenseScreen({ navigation }) {
       </SlideInView>
     );
   };
+
+  const renderCashForm = () => (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <FadeInView>
+          <Text style={[styles.title, { color: colors.header }]}>Adicionar ao Caixa</Text>
+        </FadeInView>
+
+        <SlideInView delay={100}>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Valor (R$)</Text>
+            <TextInput
+              style={[styles.amountInput, { 
+                backgroundColor: colors.inputBg, 
+                color: colors.text,
+                shadowColor: isDark ? '#000' : '#ccc',
+              }]}
+              placeholder="R$ 0,00"
+              keyboardType="numeric"
+              value={cashAmountDisplay}
+              onChangeText={handleCashAmountChange}
+              placeholderTextColor={colors.textLight}
+            />
+          </View>
+        </SlideInView>
+
+        <SlideInView delay={200}>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Descrição</Text>
+            <TextInput
+              style={[styles.input, { 
+                backgroundColor: colors.inputBg, 
+                color: colors.text,
+                shadowColor: isDark ? '#000' : '#ccc',
+              }]}
+              placeholder="Ex: Salário, Pix recebido..."
+              value={cashDescription}
+              onChangeText={setCashDescription}
+              placeholderTextColor={colors.textLight}
+            />
+          </View>
+        </SlideInView>
+
+        <SlideInView delay={300}>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Data</Text>
+            <TextInput
+              style={[styles.input, { 
+                backgroundColor: colors.inputBg, 
+                color: colors.text,
+                shadowColor: isDark ? '#000' : '#ccc',
+              }]}
+              placeholder="AAAA-MM-DD"
+              value={cashDate}
+              onChangeText={setCashDate}
+              placeholderTextColor={colors.textLight}
+            />
+          </View>
+        </SlideInView>
+
+        <ScaleInView delay={400}>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: colors.success }]} onPress={handleCashSubmit}>
+            <Ionicons name="checkmark-outline" size={24} color="#fff" />
+            <Text style={styles.submitText}>Adicionar ao Caixa</Text>
+          </TouchableOpacity>
+        </ScaleInView>
+
+        <ScaleInView delay={450}>
+          <TouchableOpacity 
+            style={[styles.cancelButton, { backgroundColor: colors.border }]} 
+            onPress={() => {
+              setShowCashForm(false);
+              setCashAmount('');
+              setCashAmountDisplay('');
+              setCashDate(getTodayDate());
+              setCashDescription('');
+            }}
+          >
+            <Ionicons name="close-outline" size={24} color={colors.text} />
+            <Text style={[styles.submitText, { color: colors.text }]}>Cancelar</Text>
+          </TouchableOpacity>
+        </ScaleInView>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 
   const renderForm = () => (
     <KeyboardAvoidingView
@@ -478,6 +611,7 @@ export default function AddExpenseScreen({ navigation }) {
     </View>
   );
 
+  if (showCashForm) return renderCashForm();
   return showForm ? renderForm() : renderList();
 }
 
@@ -618,6 +752,54 @@ const styles = StyleSheet.create({
   filterBtnText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  fabMenuOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 998,
+  },
+  fabMenuOverlayTouchable: {
+    flex: 1,
+  },
+  fabMenu: {
+    position: 'absolute',
+    right: 20,
+    bottom: 80,
+    width: 220,
+    borderRadius: 16,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 999,
+  },
+  fabMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  fabMenuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  fabMenuTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  fabMenuSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
   },
   fab: {
     position: 'absolute', right: 20, bottom: 20,
