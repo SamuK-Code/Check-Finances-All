@@ -29,7 +29,6 @@ export default function BankSelectorModal({ visible, onSelect, onClose, selected
 
   const popularBanks = getPopularBanks();
 
-  // Verificar se BANKS está carregado
   if (!BANKS || BANKS.length === 0) {
     return (
       <Modal visible={visible} animationType="slide" transparent>
@@ -80,7 +79,7 @@ export default function BankSelectorModal({ visible, onSelect, onClose, selected
             )}
           </View>
 
-          {/* Type Filter */}
+          {/* Type Filter - Improved contrast */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeFilter}>
             {BANK_TYPES.map(type => (
               <TouchableOpacity
@@ -126,7 +125,7 @@ export default function BankSelectorModal({ visible, onSelect, onClose, selected
                       onPress={() => onSelect(bank)}
                     >
                       <View style={[styles.bankIconLarge, { backgroundColor: bank.color + '20' }]}>
-                        <Ionicons name={bank.icon} size={28} color={bank.color} />
+                        <Ionicons name={bank.icon} size={24} color={bank.color} />
                       </View>
                       <Text style={[styles.popularName, { color: colors.text }]}>{bank.name}</Text>
                       {selectedBankId === bank.id && (
@@ -254,9 +253,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 8,
     backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   typeText: {
-    fontSize: 13,
+    fontSize: 12,
+    fontWeight: '500',
   },
   contentScroll: {
     flex: 1,
@@ -293,9 +295,9 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   bankIconLarge: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
