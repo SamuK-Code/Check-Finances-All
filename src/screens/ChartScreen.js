@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useExpenses } from '../context/ExpenseContext';
 import { usePlanning } from '../context/PlanningContext';
 import { useTheme } from '../context/ThemeContext';
-import { FadeInView, SlideInView, ScaleInView } from '../components/AnimatedComponents';
+import { FadeInView, SlideInView, ScaleInView, StaggeredList } from '../components/AnimatedComponents';
 import PeriodFilter from '../components/PeriodFilter';
 import { getBankById } from '../utils/BanksData';
 
