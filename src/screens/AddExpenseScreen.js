@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useExpenses } from '../context/ExpenseContext';
 import { useTheme } from '../context/ThemeContext';
 import { FadeInView, SlideInView, ScaleInView } from '../components/AnimatedComponents';
+import { playSuccess, playDelete, playClick } from '../utils/SoundManager';
 import AppHeader from '../components/AppHeader';
 
 export default function AddExpenseScreen({ navigation }) {
@@ -363,7 +364,7 @@ export default function AddExpenseScreen({ navigation }) {
 
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: colors.primary }]}
-        onPress={() => setShowForm(true)}
+        onPress={() => { playClick(); setShowForm(true); }}
       >
         <Ionicons name="add-outline" size={28} color="#fff" />
       </TouchableOpacity>
