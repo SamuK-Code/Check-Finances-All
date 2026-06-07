@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
   GOALS: '@goals',
   ALERTS_ENABLED: '@alertsEnabled',
   SOUND_ENABLED: '@soundEnabled',
+  COMPLETED_EXPENSES: '@completedExpenses',
   BACKUP_PREFIX: '@backup_',
 };
 
@@ -18,8 +19,19 @@ export const STORAGE_KEYS = {
 export const safeGetItem = async (key, defaultValue = null) => {
   try {
     const value = await AsyncStorage.getItem(key);
-    if (value === null) return defaultValue;
-    return JSON.parse(value);
+    if (value === null || value === undefined || value === 'undefined') return defaultValue;
+
+    // Check if value is a valid JSON string
+    if (typeof value !== 'string') return defaultValue;
+
+    // Try to parse as JSON
+    try {
+      return JSON.parse(value);
+    } catch (parseError) {
+      // If it's not valid JSON, return the raw string or default
+      console.warn(`Invalid JSON for key ${key}:`, value.substring(0, 50));
+      return defaultValue;
+    }
   } catch (error) {
     console.error(`Error reading ${key}:`, error);
     return defaultValue;
