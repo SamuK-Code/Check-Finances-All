@@ -5,7 +5,8 @@ import { useExpenses } from '../context/ExpenseContext';
 import { usePlanning } from '../context/PlanningContext';
 import { useTheme } from '../context/ThemeContext';
 import { FadeInView, SlideInView, ScaleInView, StaggeredList } from '../components/AnimatedComponents';
-import AlertPopup from '../components/AlertPopup';
+import Toast, { showToast } from '../components/Toast';
+import { safeGetItem, STORAGE_KEYS } from '../utils/SafeStorage';
 import PeriodFilter from '../components/PeriodFilter';
 import { getBankById } from '../utils/BanksData';
 
@@ -14,8 +15,8 @@ export default function HomeScreen({ navigation }) {
   const { cashBalance } = usePlanning();
   const { colors, isDark } = useTheme();
   const [period, setPeriod] = useState('month');
-  const [activeAlert, setActiveAlert] = useState(null);
-  const [showAlertModal, setShowAlertModal] = useState(false);
+  
+  
 
   const filteredExpenses = getFilteredExpenses(period);
   const monthlyTotal = getMonthlyTotal(filteredExpenses);
@@ -26,19 +27,29 @@ export default function HomeScreen({ navigation }) {
   const cashDeficit = monthlyTotal - cashBalance;
 
   useEffect(() => {
-    if (alerts.length > 0) {
-      const dangerAlert = alerts.find(a => a.type === 'danger');
-      const warningAlert = alerts.find(a => a.type === 'warning');
-      const alertToShow = dangerAlert || warningAlert || alerts[0];
-      if (alertToShow) { setActiveAlert(alertToShow); setShowAlertModal(true); }
-    }
+    const checkAlertsEnabled = async () => {
+      const enabled = await safeGetItem(STORAGE_KEYS.ALERTS_ENABLED, true);
+      if (enabled && alerts.length > 0) {
+        // Show only the most important alert as toast
+        const dangerAlert = alerts.find(a => a.type === 'danger');
+        const warningAlert = alerts.find(a => a.type === 'warning');
+        const alertToShow = dangerAlert || warningAlert || alerts[0];
+        if (alertToShow) {
+          const typeMap = { danger: 'danger', warning: 'warning', info: 'info' };
+          showToast(alertToShow.message, typeMap[alertToShow.type] || 'info', 4000);
+          // Dismiss after showing
+          setTimeout(() => dismissAlert(alertToShow.id), 4500);
+        }
+      }
+    };
+    checkAlertsEnabled();
   }, [alerts]);
 
   const getCategoryInfo = (categoryId) => CATEGORIES.find(c => c.id === categoryId) || CATEGORIES[7];
   const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   const formatDate = (dateString) => new Date(dateString).toLocaleDateString('pt-BR');
 
-  const handleDismissAlert = () => { if (activeAlert) dismissAlert(activeAlert.id); setShowAlertModal(false); setActiveAlert(null); };
+  
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -180,7 +191,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      <AlertPopup visible={showAlertModal} alert={activeAlert} onDismiss={handleDismissAlert} />
+      <Toast />
     </View>
   );
 }
