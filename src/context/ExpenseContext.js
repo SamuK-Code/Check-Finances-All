@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
 
 const ExpenseContext = createContext();
 
@@ -87,13 +87,13 @@ export function ExpenseProvider({ children }) {
   }, [expenses, cards, categoryLimits]);
 
   const addExpense = (expense) => {
-    const newExpense = { id: uuidv4(), ...expense, createdAt: new Date().toISOString() };
+    const newExpense = { id: Crypto.randomUUID()(), ...expense, createdAt: new Date().toISOString() };
     setExpenses(prev => [newExpense, ...prev]);
     return newExpense;
   };
   const updateExpense = (id, updates) => { setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e)); };
   const deleteExpense = (id) => { setExpenses(prev => prev.filter(e => e.id !== id)); };
-  const addCard = (card) => { const newCard = { id: uuidv4(), ...card }; setCards(prev => [...prev, newCard]); };
+  const addCard = (card) => { const newCard = { id: Crypto.randomUUID()(), ...card }; setCards(prev => [...prev, newCard]); };
   const updateCard = (id, updates) => { setCards(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c)); };
   const deleteCard = (id) => { setCards(prev => prev.filter(c => c.id !== id)); setExpenses(prev => prev.map(e => e.cardId === id ? { ...e, cardId: null } : e)); };
   const setCategoryLimit = (categoryId, limit) => { setCategoryLimits(prev => ({ ...prev, [categoryId]: limit })); };
