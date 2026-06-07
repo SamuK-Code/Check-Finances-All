@@ -6,14 +6,13 @@ import {
   ScrollView,
   Dimensions,
   TouchableOpacity,
-  Animated,
 } from 'react-native';
 import { PieChart, BarChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenses } from '../context/ExpenseContext';
 import { usePlanning } from '../context/PlanningContext';
 import { useTheme } from '../context/ThemeContext';
-import { FadeInView, SlideInView, ScaleInView, StaggeredList } from '../components/AnimatedComponents';
+import { FadeInView, SlideInView, ScaleInView } from '../components/AnimatedComponents';
 import PeriodFilter from '../components/PeriodFilter';
 import { getBankById } from '../utils/BanksData';
 
@@ -25,10 +24,7 @@ export default function ChartScreen({ navigation }) {
   const { colors, isDark } = useTheme();
   const [chartType, setChartType] = useState('pie');
   const [period, setPeriod] = useState('month');
-  const [selectedSlice, setSelectedSlice] = useState(null);
-  const [scaleAnims] = useState(() => 
-    CATEGORIES.map(() => new Animated.Value(1))
-  );
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   const filteredExpenses = getFilteredExpenses(period);
   const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -49,29 +45,10 @@ export default function ChartScreen({ navigation }) {
     navigation.navigate('ChartDetail', { type: 'card', id: cardId, name: cardName, period: period });
   };
 
-  const handleSlicePress = (index, catId) => {
-    // Animate scale
-    scaleAnims.forEach((anim, i) => {
-      Animated.timing(anim, {
-        toValue: i === index ? 1.15 : 0.85,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    });
-    setSelectedSlice(index);
-
-    // Navigate after delay
-    setTimeout(() => {
-      const cat = CATEGORIES.find(c => c.id === catId);
-      handleCategoryPress(catId, cat?.name || catId);
-    }, 500);
-  };
-
   const pieData = Object.entries(categoryTotals).map(([catId, amount]) => {
     const cat = CATEGORIES.find(c => c.id === catId);
-    const percentage = totalGeral > 0 ? ((amount / totalGeral) * 100).toFixed(1) : 0;
     return {
-      name: `${cat?.name || catId} (${percentage}%)`,
+      name: cat?.name || catId,
       amount: amount,
       color: cat?.color || '#999',
       legendFontColor: colors.text,
@@ -95,122 +72,6 @@ export default function ChartScreen({ navigation }) {
     style: { borderRadius: 16 },
     propsForLabels: { fontSize: 11, fontWeight: '600' },
     propsForBackgroundLines: { stroke: isDark ? '#333' : '#e0e0e0', strokeWidth: 1 },
-  };
-
-  // Custom Donut Chart Component
-  const DonutChart = () => {
-    const radius = 100;
-    const innerRadius = 60;
-    const centerX = screenWidth / 2 - 24;
-    const centerY = 130;
-    let currentAngle = 0;
-
-    return (
-      <View style={styles.donutContainer}>
-        <View style={styles.donutChart}>
-          {pieData.map((item, index) => {
-            const percentage = totalGeral > 0 ? item.amount / totalGeral : 0;
-            const angle = percentage * 360;
-            const startAngle = currentAngle;
-            currentAngle += angle;
-            const endAngle = currentAngle;
-            const isSelected = selectedSlice === index;
-
-            // Calculate path for arc
-            const startRad = (startAngle - 90) * Math.PI / 180;
-            const endRad = (endAngle - 90) * Math.PI / 180;
-
-            const x1 = centerX + radius * Math.cos(startRad);
-            const y1 = centerY + radius * Math.sin(startRad);
-            const x2 = centerX + radius * Math.cos(endRad);
-            const y2 = centerY + radius * Math.sin(endRad);
-
-            const x3 = centerX + innerRadius * Math.cos(endRad);
-            const y3 = centerY + innerRadius * Math.sin(endRad);
-            const x4 = centerX + innerRadius * Math.cos(startRad);
-            const y4 = centerY + innerRadius * Math.sin(startRad);
-
-            const largeArc = angle > 180 ? 1 : 0;
-
-            const path = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x4} ${y4} Z`;
-
-            return (
-              <TouchableOpacity
-                key={index}
-                onPress={() => handleSlicePress(index, Object.keys(categoryTotals)[index])}
-                activeOpacity={0.8}
-              >
-                <Animated.View
-                  style={[
-                    styles.donutSlice,
-                    {
-                      transform: [{ scale: scaleAnims[index] || new Animated.Value(1) }],
-                      opacity: selectedSlice === null || selectedSlice === index ? 1 : 0.3,
-                    },
-                  ]}
-                >
-                  <View style={styles.donutSvg}>
-                    <View style={[styles.donutArc, { 
-                      backgroundColor: item.color,
-                      width: radius * 2,
-                      height: radius * 2,
-                      borderRadius: radius,
-                      borderWidth: radius - innerRadius,
-                      borderColor: item.color,
-                      transform: [
-                        { rotate: `${startAngle}deg` },
-                        { scale: isSelected ? 1.05 : 1 },
-                      ],
-                    }]} />
-                  </View>
-                </Animated.View>
-              </TouchableOpacity>
-            );
-          })}
-
-          {/* Center Text */}
-          <View style={[styles.donutCenter, { top: centerY - 30, left: centerX - 60 }]}>
-            <Text style={[styles.donutCenterLabel, { color: colors.textSecondary }]}>Total</Text>
-            <Text style={[styles.donutCenterValue, { color: colors.text }]}>
-              {formatCurrency(totalGeral)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Legend */}
-        <View style={styles.donutLegend}>
-          {pieData.map((item, index) => {
-            const percentage = totalGeral > 0 ? ((item.amount / totalGeral) * 100).toFixed(1) : 0;
-            const catId = Object.keys(categoryTotals)[index];
-            const isSelected = selectedSlice === index;
-
-            return (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.legendItem,
-                  isSelected && { backgroundColor: item.color + '20', borderRadius: 10 },
-                ]}
-                onPress={() => handleSlicePress(index, catId)}
-              >
-                <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-                <View style={styles.legendInfo}>
-                  <Text style={[styles.legendName, { color: colors.text }]}>
-                    {item.name.split(' (')[0]}
-                  </Text>
-                  <Text style={[styles.legendPercent, { color: item.color, fontWeight: 'bold' }]}>
-                    {percentage}%
-                  </Text>
-                </View>
-                <Text style={[styles.legendAmount, { color: colors.text }]}>
-                  {formatCurrency(item.amount)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-    );
   };
 
   if (expenses.length === 0) {
@@ -283,7 +144,27 @@ export default function ChartScreen({ navigation }) {
         <ScaleInView delay={200}>
           <View style={[styles.chartContainer, { backgroundColor: colors.card }]}>
             {chartType === 'pie' && pieData.length > 0 ? (
-              <DonutChart />
+              <View style={styles.donutContainer}>
+                <PieChart 
+                  data={pieData} 
+                  width={screenWidth - 48} 
+                  height={220} 
+                  chartConfig={chartConfig} 
+                  accessor="amount" 
+                  backgroundColor="transparent" 
+                  paddingLeft="15" 
+                  absolute 
+                  hasOnPress={true} 
+                  style={styles.donutChart}
+                />
+                {/* Center overlay for donut effect */}
+                <View style={styles.donutCenter}>
+                  <Text style={[styles.donutCenterLabel, { color: colors.textSecondary }]}>Total</Text>
+                  <Text style={[styles.donutCenterValue, { color: colors.text }]}>
+                    {formatCurrency(totalGeral)}
+                  </Text>
+                </View>
+              </View>
             ) : chartType === 'bar' && barData.labels.length > 0 ? (
               <BarChart 
                 data={barData} 
@@ -332,6 +213,48 @@ export default function ChartScreen({ navigation }) {
             ) : null}
           </View>
         </ScaleInView>
+
+        {/* Legend with percentages */}
+        <View style={styles.legendSection}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Detalhamento</Text>
+          <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Toque para ver mais detalhes</Text>
+          <StaggeredList staggerDelay={60}>
+            {pieData.map((item, index) => {
+              const percentage = totalGeral > 0 ? ((item.amount / totalGeral) * 100).toFixed(1) : 0;
+              const catId = Object.keys(categoryTotals)[index];
+              const isSelected = selectedCategory === index;
+
+              return (
+                <TouchableOpacity 
+                  key={index} 
+                  style={[
+                    styles.legendItem, 
+                    { backgroundColor: colors.card },
+                    isSelected && { borderLeftColor: item.color, borderLeftWidth: 4 }
+                  ]} 
+                  onPress={() => {
+                    setSelectedCategory(isSelected ? null : index);
+                    handleCategoryPress(catId, item.name);
+                  }}
+                >
+                  <View style={styles.legendLeft}>
+                    <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                    <View>
+                      <Text style={[styles.legendName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={[styles.legendPercent, { color: item.color, fontWeight: 'bold' }]}>
+                        {percentage}%
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.legendRight}>
+                    <Text style={[styles.legendAmount, { color: colors.text }]}>{formatCurrency(item.amount)}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textLight} style={{ marginLeft: 8 }} />
+                </TouchableOpacity>
+              );
+            })}
+          </StaggeredList>
+        </View>
       </ScrollView>
     </View>
   );
@@ -374,35 +297,21 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, 
     shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 
   },
-  barChart: { borderRadius: 16 },
-
-  // Donut Chart Styles
-  donutContainer: { alignItems: 'center', paddingVertical: 20 },
-  donutChart: { 
-    width: screenWidth - 48, 
-    height: 260, 
-    justifyContent: 'center', 
-    alignItems: 'center',
+  donutContainer: {
     position: 'relative',
-  },
-  donutSlice: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    height: 220,
   },
-  donutSvg: {
-    position: 'absolute',
-  },
-  donutArc: {
-    position: 'absolute',
+  donutChart: {
+    borderRadius: 16,
   },
   donutCenter: {
     position: 'absolute',
-    width: 120,
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -50 }, { translateY: -30 }],
+    width: 100,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
@@ -412,49 +321,11 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   donutCenterValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginTop: 4,
   },
-  donutLegend: {
-    width: '100%',
-    marginTop: 20,
-    paddingHorizontal: 10,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    marginBottom: 4,
-  },
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 10,
-  },
-  legendInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  legendName: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  legendPercent: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  legendAmount: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginLeft: 10,
-  },
-
-  // Card Chart Styles
+  barChart: { borderRadius: 16 },
   cardChartContainer: { width: '100%', paddingVertical: 10 },
   cardChartItem: { marginBottom: 16 },
   cardChartHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
@@ -465,4 +336,19 @@ const styles = StyleSheet.create({
   cardChartValues: { flexDirection: 'row', justifyContent: 'space-between' },
   cardChartAmount: { fontSize: 13, fontWeight: '600' },
   cardChartPct: { fontSize: 12 },
+  legendSection: { margin: 16, marginTop: 24 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold' },
+  sectionSubtitle: { fontSize: 12, marginTop: 2, marginBottom: 16 },
+  legendItem: { 
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', 
+    padding: 14, borderRadius: 14, marginBottom: 8, 
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, 
+    shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 
+  },
+  legendLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  legendDot: { width: 12, height: 12, borderRadius: 6, marginRight: 10 },
+  legendName: { fontSize: 14, fontWeight: '500' },
+  legendPercent: { fontSize: 12, marginTop: 2 },
+  legendRight: { alignItems: 'flex-end', minWidth: 100 },
+  legendAmount: { fontSize: 14, fontWeight: 'bold' },
 });
