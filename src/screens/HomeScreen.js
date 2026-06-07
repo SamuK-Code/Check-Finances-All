@@ -93,11 +93,11 @@ export default function HomeScreen({ navigation }) {
               <ScaleInView><View style={[styles.actionIcon, { backgroundColor: colors.primary }]}><Ionicons name="add" size={24} color="#fff" /></View></ScaleInView>
               <Text style={[styles.actionText, { color: colors.text }]}>Novo Gasto</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Gráficos')}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Graficos')}>
               <ScaleInView><View style={[styles.actionIcon, { backgroundColor: colors.secondary }]}><Ionicons name="pie-chart" size={24} color="#fff" /></View></ScaleInView>
               <Text style={[styles.actionText, { color: colors.text }]}>Análise</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Cartões')}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Cartoes')}>
               <ScaleInView><View style={[styles.actionIcon, { backgroundColor: colors.info }]}><Ionicons name="card" size={24} color="#fff" /></View></ScaleInView>
               <Text style={[styles.actionText, { color: colors.text }]}>Cartões</Text>
             </TouchableOpacity>
