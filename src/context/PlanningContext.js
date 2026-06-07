@@ -33,7 +33,14 @@ export function PlanningProvider({ children }) {
     } catch (e) { console.error(e); }
   };
 
-  const updateCashBalance = (amount) => setCashBalance(parseFloat(amount) || 0);
+  const updateCashBalance = (amount) => {
+  const parsed = parseFloat(amount);
+    if (isNaN(parsed)) {
+      console.warn('Valor inválido para saldo em caixa');
+      return;
+    }
+    setCashBalance(parsed);
+  };
 
   const addGoal = (goal) => {
     const newGoal = { id: uuidv4(), ...goal, createdAt: new Date().toISOString() };
