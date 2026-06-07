@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   CASH_BALANCE: '@cashBalance',
   GOALS: '@goals',
   ALERTS_ENABLED: '@alertsEnabled',
+  SOUND_ENABLED: '@soundEnabled',
   BACKUP_PREFIX: '@backup_',
 };
 
