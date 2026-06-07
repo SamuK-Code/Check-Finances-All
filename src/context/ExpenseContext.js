@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { safeGetItem, safeSetItem, safeRemoveItem, STORAGE_KEYS } from '../utils/SafeStorage';
 import * as Crypto from 'expo-crypto';
 
