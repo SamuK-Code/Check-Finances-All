@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenses } from '../context/ExpenseContext';
@@ -15,7 +16,7 @@ import SimpleList from '../components/SimpleList';
 import PeriodFilter from '../components/PeriodFilter';
 
 export default function HistoryScreen({ navigation }) {
-  const { expenses, deleteExpense, getFilteredExpenses, cards, CATEGORIES } = useExpenses();
+  const { expenses, deleteExpense, getFilteredExpenses, cards, CATEGORIES, getMonthlyTotal } = useExpenses();
   const { colors, isDark } = useTheme();
   const [period, setPeriod] = useState('all');
   const [filter, setFilter] = useState('all');
@@ -33,6 +34,41 @@ export default function HistoryScreen({ navigation }) {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  // Calculate monthly total for severity comparison
+  const monthlyTotal = getMonthlyTotal(getFilteredExpenses('month'));
+
+  // Determine expense severity based on monthly spending
+  const getExpenseSeverity = (amount) => {
+    if (monthlyTotal === 0) return { level: 'normal', color: colors.textSecondary, label: '', icon: '' };
+    const percentage = (amount / monthlyTotal) * 100;
+    if (percentage >= 20) {
+      return { 
+        level: 'high', 
+        color: colors.danger, 
+        label: 'Muito caro', 
+        icon: 'alert-circle',
+        bgColor: colors.danger + (isDark ? '25' : '15')
+      };
+    } else if (percentage >= 10) {
+      return { 
+        level: 'medium', 
+        color: colors.warning, 
+        label: 'Médio', 
+        icon: 'trending-up',
+        bgColor: colors.warning + (isDark ? '25' : '15')
+      };
+    } else if (percentage >= 5) {
+      return { 
+        level: 'low', 
+        color: colors.info, 
+        label: 'Simples', 
+        icon: 'checkmark-circle',
+        bgColor: colors.info + (isDark ? '25' : '15')
+      };
+    }
+    return { level: 'normal', color: colors.textSecondary, label: '', icon: '', bgColor: 'transparent' };
   };
 
   const finalExpenses = filter === 'all' 
@@ -57,6 +93,8 @@ export default function HistoryScreen({ navigation }) {
   const renderExpenseItem = (item) => {
     const category = getCategoryInfo(item.category);
     const card = cards.find(c => c.id === item.cardId);
+    const severity = getExpenseSeverity(parseFloat(item.amount));
+
     return (
       <TouchableOpacity 
         style={[styles.expenseItem, { backgroundColor: colors.card }]}
@@ -79,7 +117,15 @@ export default function HistoryScreen({ navigation }) {
               </View>
             )}
           </View>
-          <Text style={[styles.expenseDate, { color: colors.textLight }]}>{formatDate(item.date)}</Text>
+          <View style={styles.expenseBottomRow}>
+            <Text style={[styles.expenseDate, { color: colors.textLight }]}>{formatDate(item.date)}</Text>
+            {severity.label ? (
+              <View style={[styles.severityBadge, { backgroundColor: severity.bgColor }]}>
+                <Ionicons name={severity.icon} size={10} color={severity.color} />
+                <Text style={[styles.severityText, { color: severity.color }]}>{severity.label}</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
         <View style={styles.expenseRight}>
           <Text style={[styles.expenseAmount, { color: colors.danger }]}>
@@ -192,7 +238,22 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   cardBadgeText: { fontSize: 11, fontWeight: '500' },
-  expenseDate: { fontSize: 12, marginTop: 4 },
+  expenseBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    justifyContent: 'space-between',
+  },
+  expenseDate: { fontSize: 12 },
+  severityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  severityText: { fontSize: 10, fontWeight: '600', marginLeft: 3 },
   expenseRight: { alignItems: 'flex-end' },
   expenseAmount: { fontSize: 15, fontWeight: 'bold' },
 });
