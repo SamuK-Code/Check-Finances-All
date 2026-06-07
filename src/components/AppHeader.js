@@ -10,7 +10,6 @@ export default function AppHeader({ title, showStats = true }) {
   const { cashBalance } = usePlanning();
   const { colors } = useTheme();
 
-  // Encontra o cartão mais utilizado (maior gasto)
   const getMostUsedCard = () => {
     if (cards.length === 0) return null;
 
