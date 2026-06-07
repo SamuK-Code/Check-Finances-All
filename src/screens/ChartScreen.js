@@ -121,21 +121,21 @@ export default function ChartScreen({ navigation }) {
               onPress={() => setChartType('pie')}
             >
               <Ionicons name="pie-chart" size={14} color={chartType === 'pie' ? '#fff' : colors.textSecondary} />
-              <Text style={[styles.toggleText, chartType === 'pie' && { color: '#fff' }, { color: colors.textSecondary }]}>Categoria</Text>
+              <Text style={[styles.toggleText, chartType === 'pie' && { color: '#fff' }, { color: chartType === 'pie' ? '#fff' : colors.textSecondary }]}>Categoria</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.toggleButton, chartType === 'bar' && { backgroundColor: colors.primary }]} 
               onPress={() => setChartType('bar')}
             >
               <Ionicons name="bar-chart" size={14} color={chartType === 'bar' ? '#fff' : colors.textSecondary} />
-              <Text style={[styles.toggleText, chartType === 'bar' && { color: '#fff' }, { color: colors.textSecondary }]}>Mês</Text>
+              <Text style={[styles.toggleText, chartType === 'bar' && { color: '#fff' }, { color: chartType === 'bar' ? '#fff' : colors.textSecondary }]}>Mês</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.toggleButton, chartType === 'card' && { backgroundColor: colors.primary }]} 
               onPress={() => setChartType('card')}
             >
               <Ionicons name="card" size={14} color={chartType === 'card' ? '#fff' : colors.textSecondary} />
-              <Text style={[styles.toggleText, chartType === 'card' && { color: '#fff' }, { color: colors.textSecondary }]}>Cartão</Text>
+              <Text style={[styles.toggleText, chartType === 'card' && { color: '#fff' }, { color: chartType === 'card' ? '#fff' : colors.textSecondary }]}>Cartão</Text>
             </TouchableOpacity>
           </View>
         </SlideInView>
@@ -197,7 +197,7 @@ export default function ChartScreen({ navigation }) {
           </View>
         </ScaleInView>
 
-        {/* Breakdown Section - Improved styling */}
+        {/* Breakdown Section - Improved styling with white text on selected */}
         <View style={styles.breakdownSection}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Detalhamento</Text>
           <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Toque para ver mais detalhes</Text>
@@ -205,6 +205,7 @@ export default function ChartScreen({ navigation }) {
             {pieData.map((item, index) => {
               const percentage = totalGeral > 0 ? ((item.amount / totalGeral) * 100).toFixed(1) : 0;
               const catId = Object.keys(categoryTotals)[index];
+              const cat = CATEGORIES.find(c => c.id === catId);
               return (
                 <TouchableOpacity 
                   key={index} 
