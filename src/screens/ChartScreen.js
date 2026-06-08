@@ -80,6 +80,11 @@ export default function ChartScreen({ navigation }) {
     style: { borderRadius: 16 },
     propsForLabels: { fontSize: 10, fontWeight: '600' },
     propsForBackgroundLines: { stroke: isDark ? '#333' : '#e0e0e0', strokeWidth: 1 },
+    formatYLabel: (value) => {
+      const num = parseFloat(value);
+      if (num >= 1000) return `R$${(num/1000).toFixed(1)}k`;
+      return `R$${num.toFixed(0)}`;
+    },
   };
 
   // Função para filtrar lista ao clicar no gráfico
@@ -193,19 +198,15 @@ export default function ChartScreen({ navigation }) {
                 <BarChart 
                   data={barData} 
                   width={screenWidth - 48} 
-                  height={200} 
+                  height={220} 
                   chartConfig={chartConfig} 
                   verticalLabelRotation={0} 
                   fromZero 
                   showValuesOnTopOfBars 
                   style={styles.barChart}
-                  yAxisLabel="R$"
+                  yAxisLabel=""
                   yAxisSuffix=""
-                  formatYLabel={(value) => {
-                    const num = parseFloat(value);
-                    if (num >= 1000) return `${(num/1000).toFixed(1)}k`;
-                    return num.toFixed(0);
-                  }}
+                  segments={4}
                 />
               </View>
             ) : chartType === 'card' ? (
@@ -433,6 +434,7 @@ const styles = StyleSheet.create({
   // Bar Chart
   barChartWrapper: {
     alignItems: 'center',
+    paddingVertical: 10,
   },
   barChart: { 
     borderRadius: 16,
