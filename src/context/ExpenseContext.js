@@ -114,7 +114,13 @@ export function ExpenseProvider({ children }) {
 
   // ─── Expenses ───
   const addExpense = useCallback((expense) => {
-    const newExpense = { ...expense, id: Date.now().toString(), paid: false, originalAmount: expense.amount, createdAt: new Date().toISOString() };
+    const newExpense = { 
+      ...expense, 
+      id: Date.now().toString(), 
+      paid: false, 
+      originalAmount: expense.amount,
+      createdAt: new Date().toISOString() 
+    };
     dispatch({ type: 'ADD_EXPENSE', payload: newExpense });
     saveData(STORAGE_KEYS.EXPENSES, [...state.expenses, newExpense]);
   }, [state.expenses, saveData]);
@@ -298,7 +304,11 @@ export function ExpenseProvider({ children }) {
     getCardUsage,
   };
 
-  return <ExpenseContext.Provider value={value}>{children}</ExpenseContext.Provider>;
+  return (
+    <ExpenseContext.Provider value={value}>
+      {children}
+    </ExpenseContext.Provider>
+  );
 }
 
 export function useExpenses() {
