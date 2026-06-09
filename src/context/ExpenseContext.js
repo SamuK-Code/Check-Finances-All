@@ -73,6 +73,8 @@ function expenseReducer(state, action) {
       return { ...state, alerts: action.payload };
     case 'DISMISS_ALERT':
       return { ...state, alerts: state.alerts.filter(a => a.id !== action.payload) };
+    case 'CLEAR_ALL_DATA':
+      return { ...initialState };
     default:
       return state;
   }
@@ -207,6 +209,18 @@ export function ExpenseProvider({ children }) {
     saveData(STORAGE_KEYS.CASH_TRANSACTIONS, filtered);
   }, [state.cashTransactions, saveData]);
 
+  // ─── Clear All Data ───
+  const clearAllData = useCallback(() => {
+    dispatch({ type: 'CLEAR_ALL_DATA' });
+    // Limpar todas as chaves do AsyncStorage relacionadas a despesas
+    Promise.all([
+      AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([])),
+      AsyncStorage.setItem(STORAGE_KEYS.CARDS, JSON.stringify([])),
+      AsyncStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify([])),
+      AsyncStorage.setItem(STORAGE_KEYS.CASH_TRANSACTIONS, JSON.stringify([])),
+    ]).catch(error => console.error('Error clearing all data:', error));
+  }, []);
+
   // ─── Alerts ───
   const addAlert = useCallback((alert) => {
     dispatch({ type: 'SET_ALERTS', payload: [...state.alerts, alert] });
@@ -294,6 +308,7 @@ export function ExpenseProvider({ children }) {
     addCashTransaction,
     updateCashTransaction,
     deleteCashTransaction,
+    clearAllData,
     addAlert,
     dismissAlert,
     getFilteredExpenses,
