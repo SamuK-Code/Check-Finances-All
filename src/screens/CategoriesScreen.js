@@ -155,15 +155,18 @@ export default function CategoriesScreen() {
         onPress={() => {
           Alert.alert(
             'Resetar Categorias',
-            'Deseja restaurar as categorias padrões? Isso removerá categorias personalizadas.',
+            'Deseja restaurar as categorias padrões? Isso removerá todas as categorias atuais.',
             [
               { text: 'Cancelar', style: 'cancel' },
               { text: 'Resetar', style: 'destructive', onPress: () => {
-                // Resetar para padrões
+                // 1. Deletar TODAS as categorias existentes primeiro
+                const allCats = categories || [];
+                allCats.forEach(cat => {
+                  deleteCategory(cat.id);
+                });
+                // 2. Adicionar as padrões (com IDs fixos para evitar duplicatas)
                 defaultCategories.forEach(cat => {
-                  if (!categories.find(c => c.id === cat.id)) {
-                    addCategory(cat);
-                  }
+                  addCategory({ ...cat, id: cat.id });
                 });
               }},
             ]
