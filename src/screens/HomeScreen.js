@@ -5,14 +5,14 @@ import { useExpenses } from '../context/ExpenseContext';
 import { usePlanning } from '../context/PlanningContext';
 import { useTheme } from '../context/ThemeContext';
 import { useI18n } from '../context/I18nContext';
-import { FadeInView, SlideInView, ScaleInView, StaggeredList } from '../components/AnimatedComponents';
+import { FadeInView, StaggeredList } from '../components/AnimatedComponents';
 import Toast, { showToast } from '../components/Toast';
 import { safeGetItem, STORAGE_KEYS } from '../utils/SafeStorage';
 import PeriodFilter from '../components/PeriodFilter';
 import { getBankById } from '../utils/BanksData';
 
 export default function HomeScreen({ navigation }) {
-  const { expenses, cards, alerts, dismissAlert, getFilteredExpenses, getMonthlyTotal, CATEGORIES } = useExpenses();
+  const { expenses, cards, alerts, dismissAlert, getFilteredExpenses, getMonthlyTotal, CATEGORIES, toggleExpensePaid } = useExpenses();
   const { cashBalance } = usePlanning();
   const { colors, isDark } = useTheme();
   const { t } = useI18n();
@@ -21,6 +21,10 @@ export default function HomeScreen({ navigation }) {
   const filteredExpenses = getFilteredExpenses(period);
   const monthlyTotal = getMonthlyTotal(filteredExpenses);
   const recentExpenses = filteredExpenses.slice(0, 5);
+
+  // Dívidas pendentes = gastos não pagos
+  const pendingExpenses = expenses.filter(e => e.paid !== true);
+  const totalPendingDebts = pendingExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
   const isCashInsufficient = cashBalance > 0 && cashBalance < monthlyTotal;
   const cashDeficit = monthlyTotal - cashBalance;
@@ -46,6 +50,20 @@ export default function HomeScreen({ navigation }) {
   const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   const formatDate = (dateString) => new Date(dateString).toLocaleDateString('pt-BR');
 
+  const handlePayExpense = (expense) => {
+    Alert.alert(
+      t('confirmPay'),
+      t('wantToPay') + ' "' + expense.description + '" (' + formatCurrency(parseFloat(expense.amount)) + ')?',
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('pay'), style: 'default', onPress: () => {
+          toggleExpensePaid(expense.id);
+          showToast(t('expensePaid'), 'success', 2000);
+        }},
+      ]
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -54,9 +72,25 @@ export default function HomeScreen({ navigation }) {
           <Text style={[styles.headerTitle, { color: '#fff' }]}>{t('availableCash')}</Text>
           <Text style={[styles.headerAmount, { color: '#fff' }]}>{formatCurrency(cashBalance)}</Text>
           <Text style={[styles.headerSubtitle, { color: '#fff' }]}>
-            {filteredExpenses.length} {filteredExpenses.length === 1 ? t('transactions') : t('transactions')} {t('totalPeriod')}
+            {filteredExpenses.length} {t('transactions')} {t('totalPeriod')}
           </Text>
         </View>
+
+        {/* Pending Debts Card */}
+        {totalPendingDebts > 0 && (
+          <FadeInView style={[styles.debtsCard, { backgroundColor: colors.danger + '10' }]}>
+            <View style={styles.debtsRow}>
+              <Ionicons name="alert-circle" size={24} color={colors.danger} />
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <Text style={[styles.debtsLabel, { color: colors.danger }]}>{t('pendingDebts')}</Text>
+                <Text style={[styles.debtsValue, { color: colors.danger }]}>{formatCurrency(totalPendingDebts)}</Text>
+              </View>
+              <View style={[styles.debtsBadge, { backgroundColor: colors.danger + '15' }]}>
+                <Text style={[styles.debtsBadgeText, { color: colors.danger }]}>{pendingExpenses.length} {t('transactions')}</Text>
+              </View>
+            </View>
+          </FadeInView>
+        )}
 
         {/* Insufficient Cash Alert */}
         {isCashInsufficient && (
@@ -119,7 +153,7 @@ export default function HomeScreen({ navigation }) {
                   <View key={card.id} style={[styles.cardSummary, { backgroundColor: colors.card, borderLeftColor: bank?.color || colors.primary }]}>
                     <View style={[styles.cardColorBar, { backgroundColor: bank?.color || colors.primary }]} />
                     <View style={styles.cardBankRow}>
-                      <View style={[styles.cardBankIcon, { backgroundColor: bank?.color + '15' || colors.primary + '15' }]}>
+                      <View style={[styles.cardBankIcon, { backgroundColor: (bank?.color || colors.primary) + '15' }]}>
                         <Ionicons name={bank?.icon || 'card'} size={14} color={bank?.color || colors.primary} />
                       </View>
                       <Text style={[styles.cardBankName, { color: colors.textLight }]}>{bank?.name || card.name}</Text>
@@ -157,20 +191,38 @@ export default function HomeScreen({ navigation }) {
                 const category = getCategoryInfo(expense.category);
                 const card = cards.find(c => c.id === expense.cardId);
                 const bank = card ? getBankById(card.bankId) : null;
+                const isPaid = expense.paid === true;
                 return (
                   <TouchableOpacity key={expense.id} style={[styles.expenseItem, { backgroundColor: colors.card }]} onPress={() => navigation.navigate('EditExpense', { expenseId: expense.id })}>
                     <View style={[styles.categoryIcon, { backgroundColor: category.color + '15' }]}>
                       <Ionicons name={category.icon} size={22} color={category.color} />
                     </View>
                     <View style={styles.expenseInfo}>
-                      <Text style={[styles.expenseDescription, { color: colors.text }]}>{expense.description}</Text>
+                      <Text style={[styles.expenseDescription, { color: colors.text, textDecorationLine: isPaid ? 'line-through' : 'none', opacity: isPaid ? 0.6 : 1 }]}>
+                        {expense.description}
+                      </Text>
                       <Text style={[styles.expenseCategory, { color: colors.textLight }]}>
                         {category.name} {card ? `• ${bank?.name || card.name}` : ''}
                       </Text>
+                      {isPaid && (
+                        <View style={[styles.paidBadge, { backgroundColor: colors.success + '15' }]}>
+                          <Ionicons name="checkmark-circle" size={10} color={colors.success} />
+                          <Text style={[styles.paidText, { color: colors.success }]}>{t('paid')}</Text>
+                        </View>
+                      )}
                     </View>
                     <View style={styles.expenseRight}>
-                      <Text style={[styles.expenseAmount, { color: colors.danger }]}>{formatCurrency(parseFloat(expense.amount))}</Text>
-                      <Text style={[styles.expenseDate, { color: colors.textLight }]}>{formatDate(expense.date)}</Text>
+                      <Text style={[styles.expenseAmount, { color: isPaid ? colors.textLight : colors.danger, textDecorationLine: isPaid ? 'line-through' : 'none' }]}>
+                        {formatCurrency(parseFloat(expense.amount))}
+                      </Text>
+                      {!isPaid && (
+                        <TouchableOpacity
+                          style={[styles.payButton, { backgroundColor: colors.success }]} 
+                          onPress={() => handlePayExpense(expense)}
+                        >
+                          <Text style={styles.payButtonText}>{t('pay')}</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </TouchableOpacity>
                 );
@@ -189,6 +241,12 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 16, opacity: 0.8 },
   headerAmount: { fontSize: 36, fontWeight: 'bold', marginTop: 8 },
   headerSubtitle: { fontSize: 14, opacity: 0.7, marginTop: 4 },
+  debtsCard: { marginHorizontal: 16, marginTop: 12, padding: 16, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
+  debtsRow: { flexDirection: 'row', alignItems: 'center' },
+  debtsLabel: { fontSize: 13, fontWeight: '600', marginBottom: 2 },
+  debtsValue: { fontSize: 22, fontWeight: 'bold' },
+  debtsBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  debtsBadgeText: { fontSize: 11, fontWeight: '600' },
   cashAlert: { flexDirection: 'row', alignItems: 'center', margin: 16, marginTop: 12, padding: 14, borderRadius: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
   cashAlertTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 2 },
   cashAlertText: { fontSize: 12 },
@@ -216,7 +274,10 @@ const styles = StyleSheet.create({
   expenseCategory: { fontSize: 13, marginTop: 2 },
   expenseRight: { alignItems: 'flex-end' },
   expenseAmount: { fontSize: 15, fontWeight: 'bold' },
-  expenseDate: { fontSize: 12, marginTop: 2 },
+  paidBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4, gap: 3, alignSelf: 'flex-start' },
+  paidText: { fontSize: 10, fontWeight: '600' },
+  payButton: { marginTop: 6, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 },
+  payButtonText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
   emptyState: { alignItems: 'center', padding: 40 },
   emptyText: { fontSize: 14, marginTop: 12 },
   emptyButton: { marginTop: 16, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
