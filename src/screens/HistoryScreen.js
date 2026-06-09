@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenses } from '../context/ExpenseContext';
+import { usePlanning } from '../context/PlanningContext';
 import { useTheme } from '../context/ThemeContext';
 import { useI18n } from '../context/I18nContext';
 import { FadeInView, SlideInView, StaggeredList } from '../components/AnimatedComponents';
@@ -17,7 +18,8 @@ import AppHeader from '../components/AppHeader';
 import PeriodFilter from '../components/PeriodFilter';
 
 export default function HistoryScreen({ navigation }) {
-  const { expenses, deleteExpense, getFilteredExpenses, CATEGORIES } = useExpenses();
+  const { expenses, deleteExpense, getFilteredExpenses, CATEGORIES, toggleExpensePaid } = useExpenses();
+  const { cashTransactions } = usePlanning();
   const { colors, isDark } = useTheme();
   const { t } = useI18n();
   const [period, setPeriod] = useState('month');
@@ -40,8 +42,20 @@ export default function HistoryScreen({ navigation }) {
     );
   };
 
-  const renderExpenseItem = ({ item, index }) => {
+  const handlePayExpense = (expense) => {
+    Alert.alert(
+      t('confirmPay'),
+      t('wantToPay') + ' "' + expense.description + '" (' + formatCurrency(parseFloat(expense.amount)) + ')?',
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('pay'), style: 'default', onPress: () => toggleExpensePaid(expense.id) },
+      ]
+    );
+  };
+
+  const renderExpenseItem = ({ item }) => {
     const category = getCategoryInfo(item.category);
+    const isPaid = item.paid === true;
     return (
       <TouchableOpacity
         style={[styles.expenseItem, { backgroundColor: colors.card }]}
@@ -52,26 +66,114 @@ export default function HistoryScreen({ navigation }) {
           <Ionicons name={category.icon} size={22} color={category.color} />
         </View>
         <View style={styles.expenseInfo}>
-          <Text style={[styles.expenseDescription, { color: colors.text }]}>{item.description}</Text>
-          <Text style={[styles.expenseCategory, { color: colors.textLight }]}>{category.name} • {formatDate(item.date)}</Text>
+          <Text style={[styles.expenseDescription, { color: colors.text, textDecorationLine: isPaid ? 'line-through' : 'none', opacity: isPaid ? 0.6 : 1 }]}>
+            {item.description}
+          </Text>
+          <Text style={[styles.expenseCategory, { color: colors.textLight }]}>
+            {category.name} • {formatDate(item.date)}
+          </Text>
+          {isPaid && (
+            <View style={[styles.paidBadge, { backgroundColor: colors.success + '15' }]}>
+              <Ionicons name="checkmark-circle" size={10} color={colors.success} />
+              <Text style={[styles.paidText, { color: colors.success }]}>{t('paid')}</Text>
+            </View>
+          )}
         </View>
         <View style={styles.expenseRight}>
-          <Text style={[styles.expenseAmount, { color: colors.danger }]}>{formatCurrency(parseFloat(item.amount))}</Text>
-          {item.cardId ? (
-            <View style={[styles.cardBadge, { backgroundColor: colors.primary + '15' }]}>
-              <Ionicons name="card" size={10} color={colors.primary} />
-              <Text style={[styles.cardBadgeText, { color: colors.primary }]}>{t('card')}</Text>
-            </View>
-          ) : (
-            <View style={[styles.cardBadge, { backgroundColor: colors.warning + '15' }]}>
-              <Ionicons name="receipt" size={10} color={colors.warning} />
-              <Text style={[styles.cardBadgeText, { color: colors.warning }]}>{t('standalone')}</Text>
-            </View>
+          <Text style={[styles.expenseAmount, { color: isPaid ? colors.textLight : colors.danger, textDecorationLine: isPaid ? 'line-through' : 'none' }]}>
+            {formatCurrency(parseFloat(item.amount))}
+          </Text>
+          {!isPaid && (
+            <TouchableOpacity
+              style={[styles.payButton, { backgroundColor: colors.success }]}
+              onPress={() => handlePayExpense(item)}
+            >
+              <Text style={styles.payButtonText}>{t('pay')}</Text>
+            </TouchableOpacity>
           )}
         </View>
       </TouchableOpacity>
     );
   };
+
+  const renderCashItem = ({ item }) => (
+    <View style={[styles.expenseItem, { backgroundColor: colors.card }]}>
+      <View style={[styles.categoryIcon, { backgroundColor: colors.success + '15' }]}>
+        <Ionicons name="cash" size={22} color={colors.success} />
+      </View>
+      <View style={styles.expenseInfo}>
+        <Text style={[styles.expenseDescription, { color: colors.text }]}>{item.description}</Text>
+        <Text style={[styles.expenseCategory, { color: colors.textLight }]}>{t('cash')}</Text>
+        <Text style={[styles.expenseDate, { color: colors.textLight }]}>{formatDate(item.date)}</Text>
+      </View>
+      <View style={styles.expenseRight}>
+        <Text style={[styles.cashAmount, { color: colors.success }]}>+ {formatCurrency(parseFloat(item.amount))}</Text>
+      </View>
+    </View>
+  );
+
+  const getDisplayData = () => {
+    if (filterType === 'cash') {
+      return { data: cashTransactions || [], renderItem: renderCashItem, emptyKey: 'noCashEntries' };
+    }
+    if (filterType === 'expenses') {
+      return { data: filteredExpenses, renderItem: renderExpenseItem, emptyKey: 'noExpenses' };
+    }
+    // 'all' - mesclar gastos e caixa, ordenados por data
+    const allItems = [
+      ...filteredExpenses.map(e => ({ ...e, _type: 'expense' })),
+      ...(cashTransactions || []).map(c => ({ ...c, _type: 'cash' }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+    return { data: allItems, renderItem: renderAllItem, emptyKey: 'noExpenses' };
+  };
+
+  const renderAllItem = ({ item }) => {
+    if (item._type === 'cash') {
+      return (
+        <View style={[styles.expenseItem, { backgroundColor: colors.card }]}>
+          <View style={[styles.categoryIcon, { backgroundColor: colors.success + '15' }]}>
+            <Ionicons name="cash" size={22} color={colors.success} />
+          </View>
+          <View style={styles.expenseInfo}>
+            <Text style={[styles.expenseDescription, { color: colors.text }]}>{item.description}</Text>
+            <Text style={[styles.expenseCategory, { color: colors.textLight }]}>{t('cash')}</Text>
+            <Text style={[styles.expenseDate, { color: colors.textLight }]}>{formatDate(item.date)}</Text>
+          </View>
+          <View style={styles.expenseRight}>
+            <Text style={[styles.cashAmount, { color: colors.success }]}>+ {formatCurrency(parseFloat(item.amount))}</Text>
+          </View>
+        </View>
+      );
+    }
+    const category = getCategoryInfo(item.category);
+    const isPaid = item.paid === true;
+    return (
+      <TouchableOpacity
+        style={[styles.expenseItem, { backgroundColor: colors.card }]}
+        onPress={() => navigation.navigate('EditExpense', { expenseId: item.id })}
+        onLongPress={() => handleDelete(item)}
+      >
+        <View style={[styles.categoryIcon, { backgroundColor: category.color + '15' }]}>
+          <Ionicons name={category.icon} size={22} color={category.color} />
+        </View>
+        <View style={styles.expenseInfo}>
+          <Text style={[styles.expenseDescription, { color: colors.text, textDecorationLine: isPaid ? 'line-through' : 'none', opacity: isPaid ? 0.6 : 1 }]}>
+            {item.description}
+          </Text>
+          <Text style={[styles.expenseCategory, { color: colors.textLight }]}>
+            {category.name} • {formatDate(item.date)}
+          </Text>
+        </View>
+        <View style={styles.expenseRight}>
+          <Text style={[styles.expenseAmount, { color: isPaid ? colors.textLight : colors.danger, textDecorationLine: isPaid ? 'line-through' : 'none' }]}>
+            {formatCurrency(parseFloat(item.amount))}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const { data, renderItem, emptyKey } = getDisplayData();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -99,16 +201,16 @@ export default function HistoryScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {filteredExpenses.length === 0 ? (
+      {data.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="receipt-outline" size={48} color={colors.textLight} />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('noExpenses')}</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t(emptyKey)}</Text>
           <Text style={[styles.emptySubtitle, { color: colors.textLight }]}>{t('addFirstExpense')}</Text>
         </View>
       ) : (
         <FlatList
-          data={filteredExpenses}
-          renderItem={renderExpenseItem}
+          data={data}
+          renderItem={renderItem}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -129,10 +231,14 @@ const styles = StyleSheet.create({
   expenseInfo: { flex: 1, marginLeft: 12 },
   expenseDescription: { fontSize: 15, fontWeight: '600' },
   expenseCategory: { fontSize: 12, marginTop: 2 },
+  expenseDate: { fontSize: 11, marginTop: 4 },
   expenseRight: { alignItems: 'flex-end' },
   expenseAmount: { fontSize: 15, fontWeight: 'bold' },
-  cardBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4, gap: 3 },
-  cardBadgeText: { fontSize: 10, fontWeight: '600' },
+  cashAmount: { fontSize: 15, fontWeight: 'bold' },
+  paidBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4, gap: 3, alignSelf: 'flex-start' },
+  paidText: { fontSize: 10, fontWeight: '600' },
+  payButton: { marginTop: 6, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 },
+  payButtonText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
   emptyTitle: { fontSize: 18, fontWeight: 'bold', marginTop: 16 },
   emptySubtitle: { fontSize: 14, marginTop: 8, textAlign: 'center' },
