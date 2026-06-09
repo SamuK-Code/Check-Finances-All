@@ -114,7 +114,7 @@ export function ExpenseProvider({ children }) {
 
   // ─── Expenses ───
   const addExpense = useCallback((expense) => {
-    const newExpense = { ...expense, id: Date.now().toString(), paid: false, createdAt: new Date().toISOString() };
+    const newExpense = { ...expense, id: Date.now().toString(), paid: false, originalAmount: expense.amount, createdAt: new Date().toISOString() };
     dispatch({ type: 'ADD_EXPENSE', payload: newExpense });
     saveData(STORAGE_KEYS.EXPENSES, [...state.expenses, newExpense]);
   }, [state.expenses, saveData]);
