@@ -1,29 +1,22 @@
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { useExpenses } from '../context/ExpenseContext';
-import { usePlanning } from '../context/PlanningContext';
+import { useCash } from '../context/CashContext';
 import { useI18n } from '../context/I18nContext';
 
-/**
- * Hook customizado para gerenciar operações de caixa.
- * Centraliza estados, validação e chamadas ao contexto.
- */
 export function useCashManager() {
-  const { addCashTransaction: ctxAddCashTransaction } = useExpenses();
   const {
-    cashTransactions: planningCashTransactions,
-    deleteCashTransaction: planningDeleteCashTransaction,
-    updateCashTransaction: planningUpdateCashTransaction,
-  } = usePlanning();
+    cashTransactions,
+    addCashTransaction,
+    deleteCashTransaction,
+    updateCashTransaction,
+  } = useCash();
   const { t } = useI18n();
 
-  // Estados do formulário de caixa
   const [cashAmount, setCashAmount] = useState('');
   const [cashAmountDisplay, setCashAmountDisplay] = useState('');
   const [cashDescription, setCashDescription] = useState('');
   const [cashDate, setCashDate] = useState(getTodayDate());
 
-  // Estados de edição
   const [editingCashId, setEditingCashId] = useState(null);
   const [editCashAmount, setEditCashAmount] = useState('');
   const [editCashAmountDisplay, setEditCashAmountDisplay] = useState('');
@@ -35,9 +28,6 @@ export function useCashManager() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }
 
-  /**
-   * Converte texto digitado (com máscara) para valor numérico em centavos
-   */
   const parseCashInput = useCallback((text) => {
     const numeric = text.replace(/\D/g, '');
     const number = parseInt(numeric) / 100;
@@ -48,9 +38,6 @@ export function useCashManager() {
     return { numeric, display, number };
   }, []);
 
-  /**
-   * Valida se valor e descrição estão preenchidos corretamente
-   */
   const validateCashInput = useCallback((amount, description) => {
     if (!amount || !description) {
       Alert.alert(t('error'), t('invalidAmount') + ' / ' + t('invalidDescription'));
@@ -64,16 +51,16 @@ export function useCashManager() {
     return true;
   }, [t]);
 
-  /**
-   * Adiciona nova entrada ao caixa
-   */
   const submitCash = useCallback((onSuccess) => {
     if (!validateCashInput(cashAmount, cashDescription)) return false;
 
     const finalAmount = parseFloat(cashAmount) / 100;
 
     try {
-      const result = ctxAddCashTransaction(finalAmount, cashDescription.trim());
+      const result = addCashTransaction(finalAmount, 'income', {
+        description: cashDescription.trim(),
+        date: cashDate,
+      });
       if (!result) {
         Alert.alert(t('error'), t('error'));
         return false;
@@ -90,11 +77,8 @@ export function useCashManager() {
       Alert.alert(t('error'), t('error'));
       return false;
     }
-  }, [cashAmount, cashDescription, ctxAddCashTransaction, t, validateCashInput]);
+  }, [cashAmount, cashDescription, cashDate, addCashTransaction, t, validateCashInput]);
 
-  /**
-   * Inicia modo de edição de uma entrada
-   */
   const startEditing = useCallback((cashItem) => {
     setEditingCashId(cashItem.id);
     const amountInCents = Math.round(cashItem.amount * 100).toString();
@@ -106,9 +90,6 @@ export function useCashManager() {
     setEditCashDate(cashItem.date || getTodayDate());
   }, []);
 
-  /**
-   * Cancela modo de edição
-   */
   const cancelEditing = useCallback(() => {
     setEditingCashId(null);
     setEditCashAmount('');
@@ -117,16 +98,13 @@ export function useCashManager() {
     setEditCashDate(getTodayDate());
   }, []);
 
-  /**
-   * Atualiza uma entrada existente
-   */
   const updateCash = useCallback((onSuccess) => {
     if (!validateCashInput(editCashAmount, editCashDescription)) return false;
 
     const finalAmount = parseFloat(editCashAmount) / 100;
 
     try {
-      const result = planningUpdateCashTransaction(editingCashId, {
+      const result = updateCashTransaction(editingCashId, {
         amount: finalAmount,
         description: editCashDescription.trim(),
         date: editCashDate,
@@ -149,11 +127,8 @@ export function useCashManager() {
       Alert.alert(t('error'), t('error') + ': ' + error.message);
       return false;
     }
-  }, [editingCashId, editCashAmount, editCashDescription, editCashDate, planningUpdateCashTransaction, t, validateCashInput, cancelEditing]);
+  }, [editingCashId, editCashAmount, editCashDescription, editCashDate, updateCashTransaction, t, validateCashInput, cancelEditing]);
 
-  /**
-   * Exclui uma entrada do caixa
-   */
   const deleteCash = useCallback((cashItem, onSuccess) => {
     Alert.alert(
       t('confirm') + ' ' + t('delete'),
@@ -161,18 +136,13 @@ export function useCashManager() {
       [
         { text: t('cancel'), style: 'cancel' },
         { text: t('delete'), style: 'destructive', onPress: () => {
-          if (typeof planningDeleteCashTransaction === 'function') {
-            planningDeleteCashTransaction(cashItem.id);
-          }
+          deleteCashTransaction(cashItem.id);
           if (onSuccess) onSuccess();
         }},
       ]
     );
-  }, [planningDeleteCashTransaction, t]);
+  }, [deleteCashTransaction, t]);
 
-  /**
-   * Reseta o formulário de adição
-   */
   const resetCashForm = useCallback(() => {
     setCashAmount('');
     setCashAmountDisplay('');
@@ -180,18 +150,12 @@ export function useCashManager() {
     setCashDate(getTodayDate());
   }, []);
 
-  /**
-   * Manipula mudança no input de valor (novo)
-   */
   const handleCashAmountChange = useCallback((text) => {
     const { numeric, display } = parseCashInput(text);
     setCashAmount(numeric);
     setCashAmountDisplay(display);
   }, [parseCashInput]);
 
-  /**
-   * Manipula mudança no input de valor (edição)
-   */
   const handleEditCashAmountChange = useCallback((text) => {
     const { numeric, display } = parseCashInput(text);
     setEditCashAmount(numeric);
@@ -199,7 +163,6 @@ export function useCashManager() {
   }, [parseCashInput]);
 
   return {
-    // Estados do formulário
     cashAmount,
     cashAmountDisplay,
     cashDescription,
@@ -209,16 +172,12 @@ export function useCashManager() {
     editCashAmountDisplay,
     editCashDescription,
     editCashDate,
-
-    // Setters
     setCashAmount,
     setCashAmountDisplay,
     setCashDescription,
     setCashDate,
     setEditCashDescription,
     setEditCashDate,
-
-    // Ações
     submitCash,
     updateCash,
     deleteCash,
