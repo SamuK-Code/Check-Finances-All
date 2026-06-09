@@ -44,7 +44,7 @@ export default function AddExpenseScreen({ navigation }) {
   const [amount, setAmount] = useState('');
   const [amountDisplay, setAmountDisplay] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0]?.id || 'outros');
+  const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0]?.id || 'cat-others');
   const [selectedCard, setSelectedCard] = useState(null);
   const [expenseType, setExpenseType] = useState('card');
   const [paymentMethod, setPaymentMethod] = useState('credit');
@@ -67,23 +67,11 @@ export default function AddExpenseScreen({ navigation }) {
     return new Date(dateString).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
   };
 
+  // CORREÇÃO: Simplificar getCategoryInfo — usar apenas CATEGORIES do contexto
   const getCategoryInfo = (categoryId) => {
     if (!categoryId) return { name: 'Outros', color: '#999', icon: 'ellipsis-horizontal' };
     const cat = CATEGORIES.find(c => c.id === categoryId);
-    if (cat) return cat;
-    // Fallback: procurar nas categorias padrões
-    const defaults = [
-      { id: 'food', name: 'Alimentação', color: '#FF6B6B', icon: 'restaurant' },
-      { id: 'transport', name: 'Transporte', color: '#4ECDC4', icon: 'car' },
-      { id: 'leisure', name: 'Lazer', color: '#45B7D1', icon: 'game-controller' },
-      { id: 'health', name: 'Saúde', color: '#96CEB4', icon: 'medical' },
-      { id: 'housing', name: 'Moradia', color: '#FFEAA7', icon: 'home' },
-      { id: 'education', name: 'Educação', color: '#DDA0DD', icon: 'school' },
-      { id: 'shopping', name: 'Compras', color: '#98D8C8', icon: 'cart' },
-      { id: 'others', name: 'Outros', color: '#F7DC6F', icon: 'ellipsis-horizontal' },
-    ];
-    const defaultCat = defaults.find(c => c.id === categoryId);
-    return defaultCat || { name: 'Outros', color: '#999', icon: 'ellipsis-horizontal' };
+    return cat || { name: 'Outros', color: '#999', icon: 'ellipsis-horizontal' };
   };
 
   const handleAmountChange = (text) => {
@@ -136,7 +124,7 @@ export default function AddExpenseScreen({ navigation }) {
           setAmount('');
           setAmountDisplay('');
           setDescription('');
-          setSelectedCategory(CATEGORIES[0]?.id || 'outros');
+          setSelectedCategory(CATEGORIES[0]?.id || 'cat-others');
           setSelectedCard(null);
           setExpenseType('card');
           setDate(getTodayDate());
@@ -390,7 +378,8 @@ export default function AddExpenseScreen({ navigation }) {
         </View>
 
         <Text style={[styles.label, { color: colors.text }]}>{t('expenseType')}</Text>
-        <View style={styles.typeToggleContainer}>
+        {/* CORREÇÃO: Adicionar marginBottom no container do toggle */}
+        <View style={[styles.typeToggleContainer, { marginBottom: 16 }]}>
           <TouchableOpacity
             style={[styles.typeToggleButton, { backgroundColor: expenseType === 'card' ? colors.primary : colors.card }]}
             onPress={() => { setExpenseType('card'); setSelectedCard(null); }}
@@ -410,6 +399,7 @@ export default function AddExpenseScreen({ navigation }) {
         {expenseType === 'card' && (
           <>
             <Text style={[styles.label, { color: colors.text }]}>{t('paymentMethod')}</Text>
+            {/* CORREÇÃO: Aumentar marginBottom para separar do input de valor */}
             <View style={[styles.typeToggleContainer, { marginBottom: 20 }]}>
               <TouchableOpacity
                 style={[styles.typeToggleButton, { backgroundColor: paymentMethod === 'credit' ? colors.primary : colors.card }]}
@@ -457,7 +447,7 @@ export default function AddExpenseScreen({ navigation }) {
               {cards.map(card => (
                 <TouchableOpacity
                   key={card.id}
-                  style={[styles.cardButton, { 
+                  style={[styles.cardButton, {
                     backgroundColor: selectedCard === card.id ? colors.primary + '15' : colors.card,
                     borderColor: selectedCard === card.id ? colors.primary : 'transparent'
                   }]}
@@ -472,13 +462,14 @@ export default function AddExpenseScreen({ navigation }) {
         )}
 
         <Text style={[styles.label, { color: colors.text }]}>{t('category')}</Text>
-        <View style={styles.categoriesGrid}>
+        {/* CORREÇÃO: Melhorar o grid de categorias com padding e alinhamento */}
+        <View style={[styles.categoriesGrid, { marginBottom: 8 }]}>
           {CATEGORIES.map((category) => (
             <TouchableOpacity
               key={category.id}
-              style={[styles.categoryButton, { 
+              style={[styles.categoryButton, {
                 backgroundColor: selectedCategory === category.id ? category.color + '15' : colors.card,
-                borderColor: selectedCategory === category.id ? category.color : 'transparent'
+                borderColor: selectedCategory === category.id ? category.color : 'transparent',
               }]}
               onPress={() => setSelectedCategory(category.id)}
             >
@@ -572,7 +563,7 @@ export default function AddExpenseScreen({ navigation }) {
                 {['all', 'today', 'week', 'month'].map(f => (
                   <TouchableOpacity
                     key={f}
-                    style={[styles.filterBtn, { 
+                    style={[styles.filterBtn, {
                       backgroundColor: filterDate === f ? colors.primary + '15' : colors.card,
                       borderColor: filterDate === f ? colors.primary : colors.border
                     }]}
@@ -591,7 +582,7 @@ export default function AddExpenseScreen({ navigation }) {
                 {['all', 'card', 'standalone'].map(f => (
                   <TouchableOpacity
                     key={f}
-                    style={[styles.filterBtn, { 
+                    style={[styles.filterBtn, {
                       backgroundColor: filterType === f ? colors.primary + '15' : colors.card,
                       borderColor: filterType === f ? colors.primary : colors.border
                     }]}
@@ -608,7 +599,7 @@ export default function AddExpenseScreen({ navigation }) {
               <Text style={[styles.filterLabel, { color: colors.textLight }]}>{t('card')}</Text>
               <View style={styles.filterButtons}>
                 <TouchableOpacity
-                  style={[styles.filterBtn, { 
+                  style={[styles.filterBtn, {
                     backgroundColor: filterCard === 'all' ? colors.primary + '15' : colors.card,
                     borderColor: filterCard === 'all' ? colors.primary : colors.border
                   }]}
@@ -619,7 +610,7 @@ export default function AddExpenseScreen({ navigation }) {
                 {cards.map(c => (
                   <TouchableOpacity
                     key={c.id}
-                    style={[styles.filterBtn, { 
+                    style={[styles.filterBtn, {
                       backgroundColor: filterCard === c.id ? colors.primary + '15' : colors.card,
                       borderColor: filterCard === c.id ? colors.primary : colors.border
                     }]}
@@ -714,16 +705,18 @@ const styles = StyleSheet.create({
   viewModeToggle: { flexDirection: 'row', gap: 10 },
   viewModeButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, gap: 6 },
   viewModeText: { fontSize: 13, fontWeight: '600' },
-  typeToggleContainer: { flexDirection: 'row', gap: 10 },
+  // CORREÇÃO: Adicionar marginBottom no typeToggleContainer
+  typeToggleContainer: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   typeToggleButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, gap: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   typeToggleText: { fontSize: 13, fontWeight: '600' },
   inputCompact: { borderRadius: 12, padding: 14, fontSize: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
   cardButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, marginRight: 8, borderWidth: 1, borderColor: 'transparent' },
   cardText: { marginLeft: 6, fontSize: 13 },
-  categoriesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  // CORREÇÃO: Melhorar categoriesGrid com padding e justifyContent
+  categoriesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-start' },
   categoryButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: 'transparent', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   categoryText: { marginLeft: 6, fontSize: 13 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 16 },
+  label: { fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 8 },
   submitButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 14, marginTop: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
   cancelButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 14, marginTop: 12 },
   submitText: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
