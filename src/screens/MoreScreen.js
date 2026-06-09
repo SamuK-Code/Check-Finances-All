@@ -17,6 +17,7 @@ import { playClick, toggleSound, isSoundEnabled } from '../utils/SoundManager';
 import { useTheme } from '../context/ThemeContext';
 import { useCash } from '../context/CashContext';
 import { useI18n } from '../context/I18nContext';
+import { clearAllStorage } from '../utils/StorageUtils';
 import { FadeInView, SlideInView, ScaleInView } from '../components/AnimatedComponents';
 import AppHeader from '../components/AppHeader';
 
