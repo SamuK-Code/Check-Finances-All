@@ -123,9 +123,6 @@ export default function CategoriesScreen() {
   };
 
   // Fallback seguro: se categories for null/undefined/vazio, usar CATEGORIES padrões
-  const displayCategories = (categories && Array.isArray(categories) && categories.length > 0) 
-    ? categories 
-    : (CATEGORIES || []);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
