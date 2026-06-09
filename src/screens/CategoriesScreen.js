@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useExpenses } from '../context/ExpenseContext';
 import { useTheme } from '../context/ThemeContext';
 import { useI18n } from '../context/I18nContext';
-import { FadeInView, ScaleInView } from '../components/AnimatedComponents';
+import { ScaleInView } from '../components/AnimatedComponents';
 import AppHeader from '../components/AppHeader';
 
 export default function CategoriesScreen() {
@@ -107,15 +107,19 @@ export default function CategoriesScreen() {
     setEditingCategory(null);
   };
 
-  const displayCategories = categories && categories.length > 0 ? categories : CATEGORIES;
+  // Fallback seguro: se categories for null/undefined/vazio, usar CATEGORIES padrões
+  const displayCategories = (categories && Array.isArray(categories) && categories.length > 0) 
+    ? categories 
+    : (CATEGORIES || []);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <AppHeader title={t('categories')} />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+        
         {displayCategories.map((category, index) => (
-          <FadeInView key={category.id || index} delay={index * 50}>
+          <View key={category.id || index}>
             <TouchableOpacity
               style={[styles.categoryItem, { backgroundColor: colors.card }]}
               onPress={() => openEdit(category)}
@@ -130,7 +134,7 @@ export default function CategoriesScreen() {
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
             </TouchableOpacity>
-          </FadeInView>
+          </View>
         ))}
       </ScrollView>
 
