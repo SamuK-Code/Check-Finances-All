@@ -28,6 +28,7 @@ import CardsScreen from './src/screens/CardsScreen';
 import PlanningScreen from './src/screens/PlanningScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import LanguageScreen from './src/screens/LanguageScreen';
+import CategoriesScreen from './src/screens/CategoriesScreen';
 import MenuScreen from './src/screens/MenuScreen';
 
 const Tab = createBottomTabNavigator();
@@ -59,6 +60,7 @@ function MenuStack() {
     <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="MenuMain" component={MenuScreen} />
       <Stack.Screen name="Language" component={LanguageScreen} />
+      <Stack.Screen name="Categories" component={CategoriesScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
@@ -104,7 +106,7 @@ function TabNavigator() {
       <Tab.Screen name="ChartsTab" component={ChartStack} options={{ tabBarLabel: t('charts') }} />
       <Tab.Screen name="PlanningTab" component={PlanningScreen} options={{ tabBarLabel: t('planning') }} />
       <Tab.Screen name="CardsTab" component={CardsScreen} options={{ tabBarLabel: t('cards') }} />
-      <Tab.Screen name="MenuTab" component={MenuStack} options={{ tabBarLabel: t('menu') }} />
+      <Tab.Screen name="MenuTab" component={MenuStack} options={{ tabBarLabel: t('settings') }} />
     </Tab.Navigator>
   );
 }
