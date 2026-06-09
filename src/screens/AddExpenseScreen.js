@@ -27,6 +27,7 @@ export default function AddExpenseScreen({ navigation }) {
     cards,
     CATEGORIES,
     deleteExpense,
+    toggleExpensePaid,
     cashTransactions: ctxCashTransactions,
   } = useExpenses();
 
@@ -34,16 +35,13 @@ export default function AddExpenseScreen({ navigation }) {
   const { colors, isDark } = useTheme();
   const { t } = useI18n();
 
-  // Hook de gerenciamento de caixa (centraliza toda lógica)
   const cashManager = useCashManager();
 
-  // Estados da tela
   const [showForm, setShowForm] = useState(false);
   const [showCashForm, setShowCashForm] = useState(false);
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState('expenses');
 
-  // Estados do formulário de despesa
   const [amount, setAmount] = useState('');
   const [amountDisplay, setAmountDisplay] = useState('');
   const [description, setDescription] = useState('');
@@ -53,7 +51,6 @@ export default function AddExpenseScreen({ navigation }) {
   const [paymentMethod, setPaymentMethod] = useState('credit');
   const [date, setDate] = useState(getTodayDate());
 
-  // Filtros
   const [filterDate, setFilterDate] = useState('all');
   const [filterCard, setFilterCard] = useState('all');
   const [filterType, setFilterType] = useState('all');
@@ -74,8 +71,6 @@ export default function AddExpenseScreen({ navigation }) {
   const getCategoryInfo = (categoryId) => {
     return CATEGORIES.find(c => c.id === categoryId) || CATEGORIES[7];
   };
-
-  // ─── Handlers de Despesa ───
 
   const handleAmountChange = (text) => {
     const numeric = text.replace(/\D/g, '');
@@ -141,7 +136,16 @@ export default function AddExpenseScreen({ navigation }) {
     );
   };
 
-  // ─── Handlers de Caixa (delegados ao hook) ───
+  const handlePayExpense = (expense) => {
+    Alert.alert(
+      t('confirmPay'),
+      t('wantToPay') + ' "' + expense.description + '" (' + formatCurrency(parseFloat(expense.amount)) + ')?',
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('pay'), style: 'default', onPress: () => toggleExpensePaid(expense.id) },
+      ]
+    );
+  };
 
   const handleCashSubmit = () => {
     cashManager.submitCash(() => setShowCashForm(false));
@@ -159,12 +163,11 @@ export default function AddExpenseScreen({ navigation }) {
     cashManager.startEditing(cashItem);
   };
 
-  // ─── Renderização ───
-
   const renderExpenseItem = ({ item }) => {
     const category = getCategoryInfo(item.category);
     const card = cards.find(c => c.id === item.cardId);
     const isStandalone = !item.cardId;
+    const isPaid = item.paid === true;
 
     return (
       <TouchableOpacity
@@ -177,7 +180,9 @@ export default function AddExpenseScreen({ navigation }) {
           <Ionicons name={category.icon} size={22} color={category.color} />
         </View>
         <View style={styles.expenseInfo}>
-          <Text style={[styles.expenseDescription, { color: colors.text }]}>{item.description}</Text>
+          <Text style={[styles.expenseDescription, { color: colors.text, textDecorationLine: isPaid ? 'line-through' : 'none', opacity: isPaid ? 0.6 : 1 }]}>
+            {item.description}
+          </Text>
           <View style={styles.expenseMeta}>
             <Text style={[styles.expenseCategory, { color: category.color }]}>{category.name}</Text>
             {isStandalone ? (
@@ -195,7 +200,23 @@ export default function AddExpenseScreen({ navigation }) {
           <Text style={[styles.expenseDate, { color: colors.textLight }]}>{formatDate(item.date)}</Text>
         </View>
         <View style={styles.expenseRight}>
-          <Text style={[styles.expenseAmount, { color: colors.danger }]}>{formatCurrency(parseFloat(item.amount))}</Text>
+          <Text style={[styles.expenseAmount, { color: isPaid ? colors.textLight : colors.danger, textDecorationLine: isPaid ? 'line-through' : 'none' }]}>
+            {formatCurrency(parseFloat(item.amount))}
+          </Text>
+          {!isPaid && (
+            <TouchableOpacity
+              style={[styles.payButton, { backgroundColor: colors.success }]}
+              onPress={() => handlePayExpense(item)}
+            >
+              <Text style={styles.payButtonText}>{t('pay')}</Text>
+            </TouchableOpacity>
+          )}
+          {isPaid && (
+            <View style={[styles.paidBadge, { backgroundColor: colors.success + '15' }]}>
+              <Ionicons name="checkmark-circle" size={10} color={colors.success} />
+              <Text style={[styles.paidText, { color: colors.success }]}>{t('paid')}</Text>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -208,23 +229,30 @@ export default function AddExpenseScreen({ navigation }) {
       return (
         <View style={[styles.editCashForm, { backgroundColor: colors.card }]}>
           <Text style={[styles.editTitle, { color: colors.text }]}>{t('editCash')}</Text>
+
+          {/* Valor anterior em vermelho */}
+          <View style={[styles.previousValueBox, { backgroundColor: colors.danger + '10' }]}>
+            <Text style={[styles.previousValueLabel, { color: colors.danger }]}>{t('previousValue')}</Text>
+            <Text style={[styles.previousValueText, { color: colors.danger }]}>{formatCurrency(parseFloat(item.amount))}</Text>
+          </View>
+
           <TextInput
-            style={[styles.amountInput, { backgroundColor: colors.background, color: colors.text }]}
+            style={[styles.inputCompact, { backgroundColor: colors.background, color: colors.text }]}
             value={cashManager.editCashAmountDisplay}
             onChangeText={cashManager.handleEditCashAmountChange}
-            placeholder={t('amount')}
+            placeholder={t('newValue')}
             placeholderTextColor={colors.textLight}
             keyboardType="numeric"
           />
           <TextInput
-            style={[styles.input, { backgroundColor: colors.background, color: colors.text }]}
+            style={[styles.inputCompact, { backgroundColor: colors.background, color: colors.text }]}
             value={cashManager.editCashDescription}
             onChangeText={cashManager.setEditCashDescription}
             placeholder={t('description')}
             placeholderTextColor={colors.textLight}
           />
           <TextInput
-            style={[styles.input, { backgroundColor: colors.background, color: colors.text }]}
+            style={[styles.inputCompact, { backgroundColor: colors.background, color: colors.text }]}
             value={cashManager.editCashDate}
             onChangeText={cashManager.setEditCashDate}
             placeholder={t('date')}
@@ -284,7 +312,7 @@ export default function AddExpenseScreen({ navigation }) {
         </View>
 
         <TextInput
-          style={[styles.amountInput, { backgroundColor: colors.card, color: colors.text }]}
+          style={[styles.inputCompact, { backgroundColor: colors.card, color: colors.text }]}
           value={cashManager.cashAmountDisplay}
           onChangeText={cashManager.handleCashAmountChange}
           placeholder={t('amount')}
@@ -292,14 +320,14 @@ export default function AddExpenseScreen({ navigation }) {
           keyboardType="numeric"
         />
         <TextInput
-          style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
+          style={[styles.inputCompact, { backgroundColor: colors.card, color: colors.text }]}
           value={cashManager.cashDescription}
           onChangeText={cashManager.setCashDescription}
           placeholder={t('description')}
           placeholderTextColor={colors.textLight}
         />
         <TextInput
-          style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
+          style={[styles.inputCompact, { backgroundColor: colors.card, color: colors.text }]}
           value={cashManager.cashDate}
           onChangeText={cashManager.setCashDate}
           placeholder={t('date')}
@@ -378,7 +406,7 @@ export default function AddExpenseScreen({ navigation }) {
         )}
 
         <TextInput
-          style={[styles.amountInput, { backgroundColor: colors.card, color: colors.text }]}
+          style={[styles.inputCompact, { backgroundColor: colors.card, color: colors.text }]}
           value={amountDisplay}
           onChangeText={handleAmountChange}
           placeholder={t('amount')}
@@ -386,14 +414,14 @@ export default function AddExpenseScreen({ navigation }) {
           keyboardType="numeric"
         />
         <TextInput
-          style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
+          style={[styles.inputCompact, { backgroundColor: colors.card, color: colors.text }]}
           value={description}
           onChangeText={setDescription}
           placeholder={t('description')}
           placeholderTextColor={colors.textLight}
         />
         <TextInput
-          style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
+          style={[styles.inputCompact, { backgroundColor: colors.card, color: colors.text }]}
           value={date}
           onChangeText={setDate}
           placeholder={t('date')}
@@ -667,21 +695,23 @@ const styles = StyleSheet.create({
   typeToggleContainer: { flexDirection: 'row', gap: 10 },
   typeToggleButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, gap: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   typeToggleText: { fontSize: 13, fontWeight: '600' },
-  amountInput: { borderRadius: 16, padding: 18, fontSize: 32, fontWeight: 'bold', textAlign: 'center', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
-  input: { borderRadius: 14, padding: 16, fontSize: 16, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
+  inputCompact: { borderRadius: 12, padding: 14, fontSize: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
   cardButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, marginRight: 8, borderWidth: 1, borderColor: 'transparent' },
   cardText: { marginLeft: 6, fontSize: 13 },
   categoriesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   categoryButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: 'transparent', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   categoryText: { marginLeft: 6, fontSize: 13 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 16 },
-  submitButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 18, borderRadius: 16, marginTop: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
-  cancelButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 18, borderRadius: 16, marginTop: 12 },
+  submitButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 14, marginTop: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
+  cancelButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 14, marginTop: 12 },
   submitText: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
   editCashForm: { padding: 16, borderRadius: 14, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
-  editTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 16 },
+  editTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 12 },
+  previousValueBox: { padding: 12, borderRadius: 10, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  previousValueLabel: { fontSize: 12, fontWeight: '600' },
+  previousValueText: { fontSize: 16, fontWeight: 'bold' },
   editButtonsRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  editButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 12, gap: 6 },
+  editButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 12, gap: 6 },
   editButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   listContent: { padding: 16, paddingBottom: 80 },
   expenseItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 14, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
@@ -698,6 +728,10 @@ const styles = StyleSheet.create({
   standaloneText: { fontSize: 10, fontWeight: '600' },
   cardBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, gap: 3 },
   cardBadgeText: { fontSize: 10, fontWeight: '600' },
+  paidBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4, gap: 3 },
+  paidText: { fontSize: 10, fontWeight: '600' },
+  payButton: { marginTop: 6, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 },
+  payButtonText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
   emptyContainer: { alignItems: 'center', padding: 40, paddingTop: 80 },
   emptyTitle: { fontSize: 18, fontWeight: 'bold', marginTop: 16 },
   emptySubtitle: { fontSize: 14, marginTop: 8, textAlign: 'center' },
