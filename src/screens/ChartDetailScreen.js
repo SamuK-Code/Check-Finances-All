@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenses } from '../context/ExpenseContext';
 import { useTheme } from '../context/ThemeContext';
+import { useI18n } from '../context/I18nContext';
 import { FadeInView, SlideInView, StaggeredList } from '../components/AnimatedComponents';
 import { getBankById } from '../utils/BanksData';
 
@@ -16,6 +17,7 @@ export default function ChartDetailScreen({ navigation, route }) {
   const { type, id, name, period, customStart, customEnd } = route.params;
   const { expenses, cards, getFilteredExpenses, CATEGORIES } = useExpenses();
   const { colors, isDark } = useTheme();
+  const { t } = useI18n();
 
   // Filter expenses based on type
   let filteredExpenses = [];
@@ -98,7 +100,7 @@ export default function ChartDetailScreen({ navigation, route }) {
           <Text style={[styles.summaryTitle, { color: colors.headerText }]}>{name}</Text>
           <Text style={[styles.summaryTotal, { color: colors.headerText }]}>{formatCurrency(total)}</Text>
           <Text style={[styles.summaryCount, { color: colors.headerText }]}>
-            {count} {count === 1 ? 'gasto' : 'gastos'} registrados
+            {count} {t('registeredExpenses')}
           </Text>
         </View>
       </FadeInView>

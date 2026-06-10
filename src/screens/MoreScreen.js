@@ -23,7 +23,7 @@ import { FadeInView, SlideInView, ScaleInView } from '../components/AnimatedComp
 import AppHeader from '../components/AppHeader';
 
 export default function MenuScreen({ navigation }) {
-  const { expenses, cards, deleteExpense, deleteCard, clearAllData, CATEGORIES, categoryLimits, setCategoryLimit } = useExpenses();
+  const { expenses, cards, deleteExpense, deleteCard, clearAllData, CATEGORIES } = useExpenses();
   const { colors, isDark, toggleTheme } = useTheme();
   const { cashBalance, clearCash } = useCash();
   const { clearGoals } = usePlanning();

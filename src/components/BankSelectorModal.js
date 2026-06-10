@@ -10,11 +10,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useI18n } from '../context/I18nContext';
 import { BANKS, BANK_TYPES, getPopularBanks } from '../utils/BanksData';
 import { SlideInView, ScaleInView } from './AnimatedComponents';
 
 export default function BankSelectorModal({ visible, onSelect, onClose, selectedBankId }) {
   const { colors, isDark } = useTheme();
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
 
@@ -142,7 +144,7 @@ export default function BankSelectorModal({ visible, onSelect, onClose, selected
             {/* All Banks List */}
             <View style={styles.allBanksSection}>
               <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                {search ? 'RESULTADOS' : 'TODOS OS BANCOS'}
+                {search ? t('results').toUpperCase() : t('allBanks').toUpperCase()}
               </Text>
 
               {filteredBanks.length === 0 ? (

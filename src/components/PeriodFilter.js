@@ -1,17 +1,19 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useI18n } from '../context/I18nContext';
 
 const PERIODS = [
-  { id: 'all', label: 'Todos' },
-  { id: 'today', label: 'Hoje' },
-  { id: 'week', label: '7 Dias' },
-  { id: 'month', label: 'Mês' },
-  { id: 'year', label: 'Ano' },
+  { id: 'all', label: t('all') },
+  { id: 'today', label: t('today') },
+  { id: 'week', label: t('week') },
+  { id: 'month', label: t('month') },
+  { id: 'year', label: t('year') },
 ];
 
 export default function PeriodFilter({ selected, onSelect }) {
   const { colors } = useTheme();
+  const { t } = useI18n();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>

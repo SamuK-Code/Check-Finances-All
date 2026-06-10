@@ -2,10 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useI18n } from '../context/I18nContext';
 import { FadeInView, ScaleInView } from './AnimatedComponents';
 
 export default function AlertPopup({ visible, alert, onDismiss }) {
   const { colors } = useTheme();
+  const { t } = useI18n();
   if (!alert) return null;
 
   const getIcon = (type) => {
@@ -40,7 +42,7 @@ export default function AlertPopup({ visible, alert, onDismiss }) {
               style={[styles.button, { backgroundColor: getColor(alert.type) }]}
               onPress={onDismiss}
             >
-              <Text style={styles.buttonText}>Entendi</Text>
+              <Text style={styles.buttonText}>{t('understood')}</Text>
             </TouchableOpacity>
           </View>
         </ScaleInView>

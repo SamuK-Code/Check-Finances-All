@@ -189,29 +189,6 @@ export function ExpenseProvider({ children }) {
     }
   }, []);
 
-  // ─── Verificar Vencimentos ───
-  const checkDueDates = useCallback(() => {
-    const today = new Date();
-    const currentDay = today.getDate();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-
-    state.cards.forEach(card => {
-      if (!card.dueDate || card.isPaused) return;
-
-      if (card.dueDate === currentDay) {
-        const lastBill = card.lastBillDate ? new Date(card.lastBillDate) : null;
-        const alreadyGenerated = lastBill &&
-          lastBill.getMonth() === currentMonth &&
-          lastBill.getFullYear() === currentYear;
-
-        if (!alreadyGenerated) {
-          generateBill(card.id);
-        }
-      }
-    });
-  }, [state.cards]);
-
   // ─── Gerar Fatura ───
   const generateBill = useCallback((cardId) => {
     const card = state.cards.find(c => c.id === cardId);
@@ -257,6 +234,29 @@ export function ExpenseProvider({ children }) {
     saveData(STORAGE_KEYS.EXPENSES, [billExpense, ...updatedExpenses]);
     saveData(STORAGE_KEYS.CARDS, updatedCards);
   }, [state.cards, state.expenses, saveData]);
+
+  // ─── Verificar Vencimentos ───
+  const checkDueDates = useCallback(() => {
+    const today = new Date();
+    const currentDay = today.getDate();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+
+    state.cards.forEach(card => {
+      if (!card.dueDate || card.isPaused) return;
+
+      if (card.dueDate === currentDay) {
+        const lastBill = card.lastBillDate ? new Date(card.lastBillDate) : null;
+        const alreadyGenerated = lastBill &&
+          lastBill.getMonth() === currentMonth &&
+          lastBill.getFullYear() === currentYear;
+
+        if (!alreadyGenerated) {
+          generateBill(card.id);
+        }
+      }
+    });
+  }, [state.cards, generateBill]);
 
   // ─── Quitar Fatura ───
   const payBill = useCallback((expenseId) => {

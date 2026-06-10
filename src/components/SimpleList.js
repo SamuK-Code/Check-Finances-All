@@ -2,21 +2,26 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useI18n } from '../context/I18nContext';
 import { SlideInView, FadeInView } from './AnimatedComponents';
 
 export default function SimpleList({
   data,
   renderItem,
   keyExtractor,
-  emptyTitle = 'Nenhum item',
-  emptySubtitle = 'Adicione o primeiro item',
+  emptyTitle,
+  emptySubtitle,
   emptyIcon = 'add-circle-outline',
   onAddPress,
-  addButtonText = 'Adicionar',
+  addButtonText,
   showAddButton = true,
   contentContainerStyle,
 }) {
   const { colors } = useTheme();
+  const { t } = useI18n();
+  const _emptyTitle = emptyTitle || t('noItem');
+  const _emptySubtitle = emptySubtitle || t('addFirstItem');
+  const _addButtonText = addButtonText || t('add');
 
   if (data.length === 0) {
     return (
@@ -24,10 +29,10 @@ export default function SimpleList({
         <View style={styles.emptyContainer}>
           <Ionicons name={emptyIcon} size={64} color={colors.textLight} />
           <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>
-            {emptyTitle}
+            {_emptyTitle}
           </Text>
           <Text style={[styles.emptySubtitle, { color: colors.textLight }]}>
-            {emptySubtitle}
+            {_emptySubtitle}
           </Text>
           {showAddButton && onAddPress && (
             <TouchableOpacity
@@ -35,7 +40,7 @@ export default function SimpleList({
               onPress={onAddPress}
             >
               <Ionicons name="add-outline" size={20} color="#fff" />
-              <Text style={styles.addButtonText}>{addButtonText}</Text>
+              <Text style={styles.addButtonText}>{_addButtonText}</Text>
             </TouchableOpacity>
           )}
         </View>

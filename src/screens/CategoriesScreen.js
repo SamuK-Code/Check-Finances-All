@@ -154,11 +154,11 @@ export default function CategoriesScreen() {
         style={[styles.resetButton, { backgroundColor: colors.warning }]}
         onPress={() => {
           Alert.alert(
-            'Resetar Categorias',
-            'Deseja restaurar as categorias padrões? Isso removerá todas as categorias atuais.',
+            t('resetCategories'),
+            t('resetCategoriesDesc'),
             [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Resetar', style: 'destructive', onPress: () => {
+              { text: t('cancel'), style: 'cancel' },
+              { text: t('reset'), style: 'destructive', onPress: () => {
                 // 1. Deletar TODAS as categorias existentes
                 const allCats = [...(categories || [])];
                 allCats.forEach(cat => {

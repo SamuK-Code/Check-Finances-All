@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { I18nContext } from '../context/I18nContext';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -25,22 +26,25 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <View style={styles.container}>
-          <Ionicons name="alert-circle-outline" size={64} color="#e74c3c" />
-          <Text style={styles.title}>Ops! Algo deu errado</Text>
-          <Text style={styles.subtitle}>
-            {`O aplicativo encontrou um erro inesperado.
-Tente reiniciar ou entre em contato.`}
-          </Text>
-          {this.state.error && (
-            <Text style={styles.errorText}>
-              {this.state.error.toString()}
-            </Text>
+        <I18nContext.Consumer>
+          {({ t }) => (
+            <View style={styles.container}>
+              <Ionicons name="alert-circle-outline" size={64} color="#e74c3c" />
+              <Text style={styles.title}>{t('error')}</Text>
+              <Text style={styles.subtitle}>
+                {t('appError')}
+              </Text>
+              {this.state.error && (
+                <Text style={styles.errorText}>
+                  {this.state.error.toString()}
+                </Text>
+              )}
+              <TouchableOpacity style={styles.button} onPress={this.handleReset}>
+                <Text style={styles.buttonText}>{t('tryAgain')}</Text>
+              </TouchableOpacity>
+            </View>
           )}
-          <TouchableOpacity style={styles.button} onPress={this.handleReset}>
-            <Text style={styles.buttonText}>Tentar Novamente</Text>
-          </TouchableOpacity>
-        </View>
+        </I18nContext.Consumer>
       );
     }
 

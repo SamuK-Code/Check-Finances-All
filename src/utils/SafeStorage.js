@@ -83,7 +83,7 @@ export const safeSetItem = async (key, value) => {
     }
 
     // Check size limit (2MB for AsyncStorage)
-    const sizeInBytes = new Blob([jsonValue]).size;
+    const sizeInBytes = jsonValue.length;
     if (sizeInBytes > 2 * 1024 * 1024) {
       throw new Error('Data too large to save');
     }
