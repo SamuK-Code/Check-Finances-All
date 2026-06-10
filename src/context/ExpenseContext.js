@@ -23,8 +23,12 @@ const DEFAULT_CATEGORIES = [
 ];
 
 // Gerador de ID único
+let _idCounter = 0;
 const generateId = () => {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 11);
+  const counter = (_idCounter++ % 1000).toString(36);
+  return timestamp + random + counter;
 };
 
 const initialState = {
@@ -137,7 +141,19 @@ export function ExpenseProvider({ children }) {
           AsyncStorage.getItem(STORAGE_KEYS.CASH_TRANSACTIONS),
         ]);
 
-        if (expensesData) dispatch({ type: 'SET_EXPENSES', payload: JSON.parse(expensesData) });
+        if (expensesData) {
+          const parsed = JSON.parse(expensesData);
+          const seen = new Set();
+          const deduped = parsed.filter(item => {
+            if (!item.id || seen.has(item.id)) return false;
+            seen.add(item.id);
+            return true;
+          });
+          if (deduped.length !== parsed.length) {
+            await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(deduped));
+          }
+          dispatch({ type: 'SET_EXPENSES', payload: deduped });
+        }
         if (cardsData) dispatch({ type: 'SET_CARDS', payload: JSON.parse(cardsData) });
 
         if (categoriesData) {
