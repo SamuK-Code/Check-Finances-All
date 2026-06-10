@@ -1,4 +1,4 @@
-import { InteractionManager } from 'react-native';
+const { InteractionManager } = require('react-native');
 
 // Substitui o runAfterInteractions por setTimeout se necessário
 const originalRunAfterInteractions = InteractionManager.runAfterInteractions;
@@ -10,4 +10,4 @@ InteractionManager.runAfterInteractions = (task) => {
   return { cancel: () => {} };
 };
 
-export default InteractionManager;
+module.exports = InteractionManager;
