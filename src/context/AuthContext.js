@@ -10,7 +10,6 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Carregar usuário salvo ao iniciar
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -29,20 +28,15 @@ export function AuthProvider({ children }) {
     loadUser();
   }, []);
 
-  // Login simples (local)
   const login = useCallback(async (username, password) => {
     try {
-      // Verifica se existe usuário cadastrado
       const savedUser = await AsyncStorage.getItem(STORAGE_KEY);
       if (!savedUser) {
         return { success: false, error: 'Usuário não encontrado. Crie uma conta primeiro.' };
       }
 
       const parsed = JSON.parse(savedUser);
-      if (parsed.username !== username) {
-        return { success: false, error: 'Usuário ou senha incorretos.' };
-      }
-      if (parsed.password !== password) {
+      if (parsed.username !== username || parsed.password !== password) {
         return { success: false, error: 'Usuário ou senha incorretos.' };
       }
 
@@ -50,27 +44,24 @@ export function AuthProvider({ children }) {
       setIsAuthenticated(true);
       return { success: true, user: parsed };
     } catch (error) {
-      console.error('[Auth] Erro no login:', error);
-      return { success: false, error: 'Erro ao fazer login. Tente novamente.' };
+      return { success: false, error: 'Erro ao fazer login.' };
     }
   }, []);
 
-  // Registro simples (local)
   const register = useCallback(async (username, password, displayName) => {
     try {
-      // Verifica se usuário já existe
       const savedUser = await AsyncStorage.getItem(STORAGE_KEY);
       if (savedUser) {
         const parsed = JSON.parse(savedUser);
         if (parsed.username === username) {
-          return { success: false, error: 'Este usuário já existe. Faça login.' };
+          return { success: false, error: 'Este usuário já existe.' };
         }
       }
 
       const newUser = {
         id: `user_${Date.now()}`,
         username,
-        password, // ⚠️ Em produção, use hash!
+        password,
         displayName: displayName || username,
         createdAt: new Date().toISOString(),
       };
@@ -80,12 +71,10 @@ export function AuthProvider({ children }) {
       setIsAuthenticated(true);
       return { success: true, user: newUser };
     } catch (error) {
-      console.error('[Auth] Erro no registro:', error);
-      return { success: false, error: 'Erro ao criar conta. Tente novamente.' };
+      return { success: false, error: 'Erro ao criar conta.' };
     }
   }, []);
 
-  // Logout
   const logout = useCallback(async () => {
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
@@ -93,12 +82,10 @@ export function AuthProvider({ children }) {
       setIsAuthenticated(false);
       return { success: true };
     } catch (error) {
-      console.error('[Auth] Erro no logout:', error);
       return { success: false, error: 'Erro ao sair.' };
     }
   }, []);
 
-  // Atualizar perfil
   const updateProfile = useCallback(async (updates) => {
     try {
       const updatedUser = { ...user, ...updates, updatedAt: new Date().toISOString() };
@@ -106,7 +93,6 @@ export function AuthProvider({ children }) {
       setUser(updatedUser);
       return { success: true, user: updatedUser };
     } catch (error) {
-      console.error('[Auth] Erro ao atualizar perfil:', error);
       return { success: false, error: 'Erro ao atualizar perfil.' };
     }
   }, [user]);
