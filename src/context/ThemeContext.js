@@ -78,11 +78,20 @@ export function ThemeProvider({ children }) {
 
   const colors = isDark ? darkColors : lightColors;
 
+  // ✅ CRIAR O VALUE AQUI
+  const value = {
+    isDark,
+    colors,
+    toggleTheme,
+    loading,
+  };
+
   if (loading) return null;
 
+  // ✅ RETURN COM PROVIDER E VALUE
   return (
     <ThemeContext.Provider value={value}>
-     {children}
+      {children}
     </ThemeContext.Provider>
   );
 }
