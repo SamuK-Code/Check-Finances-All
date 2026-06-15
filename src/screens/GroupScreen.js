@@ -67,7 +67,7 @@ const GroupScreen = () => {
         [
           {
             text: 'Copiar',
-            onPress: () => {
+            onPress: async () => {
               await Clipboard.setStringAsync(result.group.invite_code);
             },
           },
