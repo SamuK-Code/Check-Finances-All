@@ -6,6 +6,7 @@ LogBox.ignoreLogs([
 require('./src/utils/InteractionManagerPatch');
 
 import React from 'react';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
