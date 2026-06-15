@@ -1,7 +1,5 @@
-import React, { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../contexts/AuthContext';
-import { useGroup } from '../contexts/GroupContext';
 import SupabaseService from '../services/SupabaseService';
 
 const ExpenseContext = createContext();
@@ -132,9 +130,33 @@ export function ExpenseProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // ========== NOVO: Hooks de Auth e Group ==========
-  const { user, isAuthenticated } = useAuth();
-  const { activeGroup, addSyncListener } = useGroup();
+  // ✅ CORREÇÃO: Usa refs para evitar loops e verifica se os hooks existem
+  const authRef = useRef(null);
+  const groupRef = useRef(null);
+  
+  // Tenta usar Auth/Group contexts se disponíveis (opcional)
+  try {
+    const { useAuth } = require('../contexts/AuthContext');
+    authRef.current = useAuth();
+  } catch (e) {
+    // AuthContext não disponível
+  }
+  
+  try {
+    const { useGroup } = require('../contexts/GroupContext');
+    groupRef.current = useGroup();
+  } catch (e) {
+    // GroupContext não disponível
+  }
+
+  const user = authRef.current?.user;
+  const isAuthenticated = authRef.current?.isAuthenticated;
+  const activeGroup = groupRef.current?.activeGroup;
+  const addSyncListener = groupRef.current?.addSyncListener;
+
+  // Ref para controlar sync (evita loop)
+  const lastSyncRef = useRef(0);
+  const isSyncingRef = useRef(false);
 
   // Carregar dados do AsyncStorage
   useEffect(() => {
@@ -193,11 +215,18 @@ export function ExpenseProvider({ children }) {
     loadData();
   }, []);
 
-  // ========== NOVO: Sincronização com Supabase ==========
+  // ✅ CORREÇÃO: Sincronização com debounce e controle de estado
   const syncWithGroup = useCallback(async () => {
-    if (!activeGroup || !user) return;
-
+    if (!activeGroup || !user || !SupabaseService.isConfigured) return;
+    if (isSyncingRef.current) return; // Evita sync simultâneo
+    
+    // Debounce: só synca se passou pelo menos 5 segundos
+    const now = Date.now();
+    if (now - lastSyncRef.current < 5000) return;
+    
+    isSyncingRef.current = true;
     setIsSyncing(true);
+    
     try {
       const result = await SupabaseService.fullSync(
         activeGroup.id,
@@ -233,9 +262,11 @@ export function ExpenseProvider({ children }) {
           await AsyncStorage.setItem(STORAGE_KEYS.CASH_TRANSACTIONS, JSON.stringify(merged));
         }
       }
+      lastSyncRef.current = Date.now();
     } catch (error) {
       console.error('Erro na sincronização:', error);
     } finally {
+      isSyncingRef.current = false;
       setIsSyncing(false);
     }
   }, [activeGroup, user, state.expenses, state.categories, state.cards, state.cashTransactions]);
@@ -253,12 +284,11 @@ export function ExpenseProvider({ children }) {
     return Array.from(map.values());
   };
 
-  // Escuta eventos de sync do GroupContext
+  // Escuta eventos de sync do GroupContext (se disponível)
   useEffect(() => {
     if (!addSyncListener) return;
     const unsubscribe = addSyncListener((event) => {
       if (event.type === 'data_received') {
-        // Dados recebidos via outro mecanismo (Bluetooth, etc)
         if (event.data.expenses) {
           const merged = mergeData(state.expenses, event.data.expenses);
           dispatch({ type: 'SET_EXPENSES', payload: merged });
@@ -268,12 +298,16 @@ export function ExpenseProvider({ children }) {
     return unsubscribe;
   }, [addSyncListener, state.expenses]);
 
-  // Auto-sync quando muda o grupo ativo
+  // ✅ CORREÇÃO: Auto-sync com controle (não loop infinito)
   useEffect(() => {
-    if (activeGroup && user) {
-      syncWithGroup();
+    if (activeGroup && user && !isSyncingRef.current) {
+      // Só synca uma vez quando muda o grupo
+      const timer = setTimeout(() => {
+        syncWithGroup();
+      }, 1000);
+      return () => clearTimeout(timer);
     }
-  }, [activeGroup?.id]);
+  }, [activeGroup?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!loading && state.cards.length > 0) {
