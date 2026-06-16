@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
