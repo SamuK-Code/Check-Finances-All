@@ -1,21 +1,13 @@
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Switch,
-  Alert,
-  ScrollView,
-  ActivityIndicator,
-  SafeAreaView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useGroup } from '../context/GroupContext';
-import { useAuth } from '../context/AuthContext';
-import { useExpenses } from '../context/ExpenseContext';
-import { useTheme } from '../context/ThemeContext';
-import { useI18n } from '../context/I18nContext';
+import React, { useState } from 'react';
+import { View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { useGroup } from '../contexts/GroupContext';
+import { AppHeader, BackButton } from '../components/Navigation';
+import { AlertPopup, Toast, ToastManager } from '../components/Overlays';
+import { LoadingSpinner, OfflineBanner } from '../components/Indicators';
+import { Screen, SectionHeader } from '../components/Layout';
 
 const SyncScreen = () => {
   const { user } = useAuth();

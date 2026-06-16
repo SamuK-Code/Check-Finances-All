@@ -1,14 +1,15 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
-import { BarChart } from 'react-native-chart-kit';
-import { Ionicons } from '@expo/vector-icons';
-import { useExpenses } from '../context/ExpenseContext';
-import { useCash } from '../context/CashContext';
-import { useTheme } from '../context/ThemeContext';
-import { useI18n } from '../context/I18nContext';
-import AppHeader from '../components/AppHeader';
-import PeriodFilter from '../components/PeriodFilter';
-import { getBankById } from '../utils/BanksData';
+import React, { useState } from 'react';
+import { View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { useExpense } from '../contexts/ExpenseContext';
+import { AppHeader, BackButton } from '../components/Navigation';
+import { PeriodFilter } from '../components/UtilsComponents';
+import { ChartCard, TrendIndicator } from '../components/DataDisplay';
+import { FadeIn, SlideUp } from '../components/Animations';
+import { Screen, SectionHeader } from '../components/Layout';
+import { LoadingSpinner } from '../components/Indicators';
 
 const screenWidth = Dimensions.get('window').width;
 

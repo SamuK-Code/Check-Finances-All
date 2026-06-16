@@ -1,16 +1,16 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useExpenses } from '../context/ExpenseContext';
-import { useTheme } from '../context/ThemeContext';
-import { useI18n } from '../context/I18nContext';
+import React, { useState } from 'react';
+import { View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { useCash } from '../contexts/CashContext';
+import { useExpense } from '../contexts/ExpenseContext';
+import { AppHeader, BackButton } from '../components/Navigation';
+import { PeriodFilter, SimpleList } from '../components/UtilsComponents';
+import { CashListItem, ExpenseListItem } from '../components/ListItems';
+import { SearchBar } from '../components/Forms';
+import { Screen, SectionHeader, EmptyState } from '../components/Layout';
+import { LoadingSpinner } from '../components/Indicators';
 
 const PeriodFilter = ({ current, onChange, colors, t }) => {
   const periods = ['all', 'today', 'week', 'month', 'year'];

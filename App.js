@@ -1,172 +1,150 @@
-import { LogBox } from 'react-native';
-
-LogBox.ignoreLogs([
-  'InteractionManager has been deprecated',
-]);
-import('./src/utils/InteractionManagerPatch');
+// App.js — Entry point com navegação por tabs/stacks e providers
+// ATUALIZADO: ToastProvider adicionado, imports de componentes consolidados
 
 import React from 'react';
-import { View, Text, ActivityIndicator, SafeAreaView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AuthProvider, useAuth } from './src/context/AuthContext';
-import { GroupProvider } from './src/context/GroupContext';
-import { ExpenseProvider } from './src/context/ExpenseContext';
-import { PlanningProvider } from './src/context/PlanningContext';
-import { CashProvider } from './src/context/CashContext';
-import { ThemeProvider, useTheme } from './src/context/ThemeContext';
-import { I18nProvider, useI18n } from './src/context/I18nContext';
-import ErrorBoundary from './src/utils/ErrorBoundary';
+// ═══════════════════════════════════════════════════════════
+// CONTEXTS (ordem corrigida: GroupProvider antes de Cash/Expense/Planning)
+// ═══════════════════════════════════════════════════════════
+import { AuthProvider } from './contexts/AuthContext';
+import { I18nProvider } from './contexts/I18nContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { GroupProvider } from './contexts/GroupContext';
+import { CashProvider } from './contexts/CashContext';
+import { ExpenseProvider } from './contexts/ExpenseContext';
+import { PlanningProvider } from './contexts/PlanningContext';
 
-import DashboardScreen from './src/screens/DashboardScreen';
-import AddExpenseScreen from './src/screens/AddExpenseScreen';
-import EditExpenseScreen from './src/screens/EditExpenseScreen';
-import HistoryScreen from './src/screens/HistoryScreen';
-import ChartScreen from './src/screens/ChartScreen';
-import ChartDetailScreen from './src/screens/ChartDetailScreen';
-import CardsScreen from './src/screens/CardsScreen';
-import PlanningScreen from './src/screens/PlanningScreen';
-import SettingsScreen from './src/screens/SettingsScreen';
-import LanguageScreen from './src/screens/LanguageScreen';
-import CategoriesScreen from './src/screens/CategoriesScreen';
-import MoreScreen from './src/screens/MoreScreen';
-import LoginScreen from './src/screens/LoginScreen';
-import GroupScreen from './src/screens/GroupScreen';
-import SyncScreen from './src/screens/SyncScreen';
+// ═══════════════════════════════════════════════════════════
+// COMPONENTS CONSOLIDADOS
+// ═══════════════════════════════════════════════════════════
+import { ToastProvider } from './components/Overlays';
 
+// ═══════════════════════════════════════════════════════════
+// SCREENS
+// ═══════════════════════════════════════════════════════════
+import LoginScreen from './screens/LoginScreen';
+import DashboardScreen from './screens/DashboardScreen';
+import CardsScreen from './screens/CardsScreen';
+import AddExpenseScreen from './screens/AddExpenseScreen';
+import EditExpenseScreen from './screens/EditExpenseScreen';
+import ChartScreen from './screens/ChartScreen';
+import ChartDetailScreen from './screens/ChartDetailScreen';
+import PlanningScreen from './screens/PlanningScreen';
+import HistoryScreen from './screens/HistoryScreen';
+import CategoriesScreen from './screens/CategoriesScreen';
+import GroupScreen from './screens/GroupScreen';
+import SyncScreen from './screens/SyncScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import MoreScreen from './screens/MoreScreen';
+import LanguageScreen from './screens/LanguageScreen';
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION SETUP
+// ═══════════════════════════════════════════════════════════
 const Tab = createBottomTabNavigator();
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 
-// ========== STACKS ==========
-function HomeStack() {
-  const { colors } = useTheme();
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Dashboard" component={DashboardScreen} />
-      <Stack.Screen name="AddExpense" component={AddExpenseScreen} />
-      <Stack.Screen name="EditExpense" component={EditExpenseScreen} />
-      <Stack.Screen name="History" component={HistoryScreen} />
-      <Stack.Screen name="Cards" component={CardsScreen} />
-    </Stack.Navigator>
-  );
-}
+// Stack para telas dentro das tabs
+const HomeStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Dashboard" component={DashboardScreen} />
+    <Stack.Screen name="AddExpense" component={AddExpenseScreen} />
+    <Stack.Screen name="EditExpense" component={EditExpenseScreen} />
+    <Stack.Screen name="ChartDetail" component={ChartDetailScreen} />
+  </Stack.Navigator>
+);
 
-function ChartStack() {
-  const { colors } = useTheme();
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Charts" component={ChartScreen} />
-      <Stack.Screen name="ChartDetail" component={ChartDetailScreen} />
-    </Stack.Navigator>
-  );
-}
+const CardsStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="CardsList" component={CardsScreen} />
+  </Stack.Navigator>
+);
 
-function MoreStack() {
-  const { colors } = useTheme();
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="More" component={MoreScreen} />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
-      <Stack.Screen name="Language" component={LanguageScreen} />
-      <Stack.Screen name="Categories" component={CategoriesScreen} />
-      <Stack.Screen name="Group" component={GroupScreen} />
-      <Stack.Screen name="Sync" component={SyncScreen} />
-      <Stack.Screen name="Planning" component={PlanningScreen} />
-    </Stack.Navigator>
-  );
-}
+const PlanningStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="PlanningList" component={PlanningScreen} />
+  </Stack.Navigator>
+);
 
-// ========== TAB NAVIGATOR (5 TABS) ==========
-function TabNavigator() {
-  const { colors, isDark } = useTheme();
-  const { t } = useI18n();
+const HistoryStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="HistoryList" component={HistoryScreen} />
+  </Stack.Navigator>
+);
 
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
-          else if (route.name === 'Add') iconName = focused ? 'add-circle' : 'add-circle-outline';
-          else if (route.name === 'History') iconName = focused ? 'list' : 'list-outline';
-          else if (route.name === 'Charts') iconName = focused ? 'pie-chart' : 'pie-chart-outline';
-          else if (route.name === 'More') iconName = focused ? 'grid' : 'grid-outline';
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.tabInactive,
-        tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-          elevation: 8,
-          shadowColor: isDark ? '#000' : '#ccc',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          height: Platform.OS === 'ios' ? 70 : 60,
-          paddingBottom: Platform.OS === 'ios' ? 12 : 8,
-          paddingTop: 8,
-          paddingHorizontal: 16,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '500',
-          marginBottom: Platform.OS === 'ios' ? 0 : 2,
-        },
-        tabBarItemStyle: {
-          paddingVertical: 4,
-        },
-        headerShown: false,
-      })}
-    >
-      <Tab.Screen name="Home" component={HomeStack} options={{ title: t('home') }} />
-      <Tab.Screen 
-        name="Add" 
-        component={AddExpenseScreen} 
-        options={{ 
-          title: t('addExpense'),
-          tabBarItemStyle: {
-            paddingVertical: 4,
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-        }} 
-      />
-      <Tab.Screen name="History" component={HistoryScreen} options={{ title: t('history') }} />
-      <Tab.Screen name="Charts" component={ChartStack} options={{ title: t('charts') }} />
-      <Tab.Screen name="More" component={MoreStack} options={{ title: t('menu') }} />
-    </Tab.Navigator>
-  );
-}
+const MoreStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="MoreMenu" component={MoreScreen} />
+    <Stack.Screen name="Settings" component={SettingsScreen} />
+    <Stack.Screen name="Language" component={LanguageScreen} />
+    <Stack.Screen name="Categories" component={CategoriesScreen} />
+    <Stack.Screen name="Group" component={GroupScreen} />
+    <Stack.Screen name="Sync" component={SyncScreen} />
+  </Stack.Navigator>
+);
 
+// Tab Navigator principal
+const TabNavigator = () => (
+  <Tab.Navigator
+    screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarIcon: ({ focused, color, size }) => {
+        let icon;
+        switch (route.name) {
+          case 'Home': icon = focused ? '🏠' : '🏡'; break;
+          case 'Cards': icon = focused ? '💳' : '💳'; break;
+          case 'Planning': icon = focused ? '🎯' : '🎯'; break;
+          case 'History': icon = focused ? '📜' : '📃'; break;
+          case 'More': icon = focused ? '⚙️' : '🔧'; break;
+          default: icon = '•';
+        }
+        return <Text style={{ fontSize: size }}>{icon}</Text>;
+      },
+      tabBarActiveTintColor: '#007AFF',
+      tabBarInactiveTintColor: '#8E8E93',
+      tabBarStyle: {
+        backgroundColor: '#FFF',
+        borderTopWidth: 1,
+        borderTopColor: '#E5E5EA',
+        paddingBottom: 8,
+        paddingTop: 8,
+        height: 60,
+      },
+    })}
+  >
+    <Tab.Screen name="Home" component={HomeStack} />
+    <Tab.Screen name="Cards" component={CardsStack} />
+    <Tab.Screen name="Planning" component={PlanningStack} />
+    <Tab.Screen name="History" component={HistoryStack} />
+    <Tab.Screen name="More" component={MoreStack} />
+  </Tab.Navigator>
+);
 
-function AppRoot() {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-        <Text>Carregando...</Text>
-      </SafeAreaView>
-    );
-  }
-
+// ═══════════════════════════════════════════════════════════
+// APP ROOT
+// ═══════════════════════════════════════════════════════════
+const AppRoot = () => {
   return (
     <NavigationContainer>
-      {isAuthenticated ? <TabNavigator /> : <LoginScreen />}
+      <StatusBar style="auto" />
+      <TabNavigator />
     </NavigationContainer>
   );
-}
+};
 
+// ═══════════════════════════════════════════════════════════
+// PROVIDERS TREE
+// ═══════════════════════════════════════════════════════════
+// ORDEM CORRETA: Auth → I18n → Theme → Group → Cash → Expense → Planning → Toast → AppRoot
+// CashProvider, ExpenseProvider e PlanningProvider consomem useGroup()
 export default function App() {
   return (
-    <ErrorBoundary>
+    <SafeAreaProvider>
       <AuthProvider>
         <I18nProvider>
           <ThemeProvider>
@@ -174,7 +152,9 @@ export default function App() {
               <CashProvider>
                 <ExpenseProvider>
                   <PlanningProvider>
-                    <AppRoot />
+                    <ToastProvider>
+                      <AppRoot />
+                    </ToastProvider>
                   </PlanningProvider>
                 </ExpenseProvider>
               </CashProvider>
@@ -182,6 +162,6 @@ export default function App() {
           </ThemeProvider>
         </I18nProvider>
       </AuthProvider>
-    </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }

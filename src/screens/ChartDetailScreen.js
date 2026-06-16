@@ -1,17 +1,11 @@
-import React, { useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useExpenses } from '../context/ExpenseContext';
-import { useTheme } from '../context/ThemeContext';
-import { useI18n } from '../context/I18nContext';
-import { FadeInView, SlideInView, StaggeredList } from '../components/AnimatedComponents';
-import { getBankById } from '../utils/BanksData';
+import React from 'react';
+import { View } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { AppHeader, BackButton } from '../components/Navigation';
+import { ChartCard } from '../components/DataDisplay';
+import { Screen, SectionHeader } from '../components/Layout';
 
 export default function ChartDetailScreen({ navigation, route }) {
   const { type, id, name, period, customStart, customEnd } = route.params;

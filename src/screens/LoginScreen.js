@@ -1,19 +1,13 @@
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import { useI18n } from '../context/I18nContext';
+import React, { useState } from 'react';
+import { View, KeyboardAvoidingView, Platform } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { useAuth } from '../contexts/AuthContext';
+import { AlertPopup } from '../components/Overlays';
+import { Input } from '../components/Forms';
+import { Screen } from '../components/Layout';
+import { FadeIn, SlideUp, BounceIn } from '../components/Animations';
 
 const LoginScreen = () => {
   const [isLogin, setIsLogin] = useState(true);

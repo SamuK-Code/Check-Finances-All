@@ -1,16 +1,14 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, FlatList, Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useExpenses } from '../context/ExpenseContext';
-import { useTheme } from '../context/ThemeContext';
-import { useI18n } from '../context/I18nContext';
-import AppHeader from '../components/AppHeader';
-import SimpleList from '../components/SimpleList';
-import CardItem from '../components/CardItem';
-import BankSelectorModal from '../components/BankSelectorModal';
-import { getBankById } from '../utils/BanksData';
+import React, { useState } from 'react';
+import { View, FlatList } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { useExpense } from '../contexts/ExpenseContext';
+import { AppHeader, BackButton } from '../components/Navigation';
+import { CardItem } from '../components/ListItems';
+import { AlertPopup, ConfirmDialog } from '../components/Overlays';
+import { Screen, SectionHeader, EmptyState } from '../components/Layout';
+import { LoadingSpinner } from '../components/Indicators';
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);

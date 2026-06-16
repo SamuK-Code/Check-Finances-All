@@ -1,41 +1,39 @@
-import React, { Component } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// /src/utils/ErrorBoundary.js
+// ATUALIZADO: Usa ErrorState do Indicators.js em vez de componente interno
 
-class ErrorBoundary extends Component {
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { ErrorState } from '../components/Indicators';
+
+class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null };
   }
 
   static getDerivedStateFromError(error) {
-    return { hasError: true };
+    return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
-    this.setState({ error, errorInfo });
-    console.error('ErrorBoundary caught error:', error, errorInfo);
+    // Log do erro para serviço de monitoramento (Sentry, Crashlytics, etc.)
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
-  handleReset = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
+  handleRetry = () => {
+    this.setState({ hasError: false, error: null });
   };
 
   render() {
     if (this.state.hasError) {
       return (
         <View style={styles.container}>
-          <Ionicons name="alert-circle" size={64} color="#e74c3c" />
-          <Text style={styles.title}>Erro</Text>
-          <Text style={styles.subtitle}>O aplicativo encontrou um erro inesperado. Tente reiniciar.</Text>
-          {this.state.error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{this.state.error.toString()}</Text>
-            </View>
-          )}
-          <TouchableOpacity style={styles.button} onPress={this.handleReset}>
-            <Text style={styles.buttonText}>Tentar Novamente</Text>
-          </TouchableOpacity>
+          <ErrorState
+            icon="💥"
+            title="Algo deu errado"
+            message={this.state.error?.message || 'Ocorreu um erro inesperado. Tente novamente.'}
+            onRetry={this.handleRetry}
+          />
         </View>
       );
     }
@@ -47,47 +45,6 @@ class ErrorBoundary extends Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f5f6fa',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 16,
-    marginBottom: 8,
-    color: '#2c3e50',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#7f8c8d',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  errorContainer: {
-    width: '100%',
-    marginBottom: 20,
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#e74c3c',
-    textAlign: 'center',
-    padding: 10,
-    backgroundColor: '#fdeaea',
-    borderRadius: 8,
-  },
-  button: {
-    backgroundColor: '#1a237e',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });
 

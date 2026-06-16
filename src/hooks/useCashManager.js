@@ -1,190 +1,59 @@
-import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
-import { useCash } from '../context/CashContext';
-import { useI18n } from '../context/I18nContext';
+// /src/hooks/useCashManager.js
+// ATUALIZADO: Toast antigo removido, ToastManager adicionado
 
-export function useCashManager() {
-  const {
-    cashTransactions,
-    addCashTransaction,
-    deleteCashTransaction,
-    updateCashTransaction,
-  } = useCash();
-  const { t } = useI18n();
+import { useCallback } from 'react';
+import { useCash } from '../contexts/CashContext';
+import { ToastManager } from '../components/Overlays';
 
-  const [cashAmount, setCashAmount] = useState('');
-  const [cashAmountDisplay, setCashAmountDisplay] = useState('');
-  const [cashDescription, setCashDescription] = useState('');
-  const [cashDate, setCashDate] = useState(getTodayDate());
+export const useCashManager = () => {
+  const { addCash, updateCash, deleteCash, refreshCash } = useCash();
 
-  const [editingCashId, setEditingCashId] = useState(null);
-  const [editCashAmount, setEditCashAmount] = useState('');
-  const [editCashAmountDisplay, setEditCashAmountDisplay] = useState('');
-  const [editCashDescription, setEditCashDescription] = useState('');
-  const [editCashDate, setEditCashDate] = useState(getTodayDate());
-
-  function getTodayDate() {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  }
-
-  const parseCashInput = useCallback((text) => {
-    const numeric = text.replace(/\D/g, '');
-    const number = parseInt(numeric) / 100;
-    const display = new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(number || 0);
-    return { numeric, display, number };
-  }, []);
-
-  const validateCashInput = useCallback((amount, description) => {
-    if (!amount || !description) {
-      Alert.alert(t('error'), t('invalidAmount') + ' / ' + t('invalidDescription'));
-      return false;
-    }
-    const numericValue = parseFloat(amount);
-    if (isNaN(numericValue) || numericValue <= 0) {
-      Alert.alert(t('error'), t('invalidAmount'));
-      return false;
-    }
-    return true;
-  }, [t]);
-
-  const submitCash = useCallback((onSuccess) => {
-    if (!validateCashInput(cashAmount, cashDescription)) return false;
-
-    const finalAmount = parseFloat(cashAmount) / 100;
-
+  const handleAddCash = useCallback(async (data) => {
     try {
-      const result = addCashTransaction(finalAmount, 'income', {
-        description: cashDescription.trim(),
-        date: cashDate,
-      });
-      if (!result) {
-        Alert.alert(t('error'), t('error'));
-        return false;
-      }
-      Alert.alert(t('success'), t('cashAdded'), [
-        { text: t('ok'), onPress: () => {
-          resetCashForm();
-          if (onSuccess) onSuccess();
-        }}
-      ]);
+      await addCash(data);
+      ToastManager.show('Entrada adicionada com sucesso!', 'success');
       return true;
     } catch (error) {
-      console.error('Error in submitCash:', error);
-      Alert.alert(t('error'), t('error'));
+      ToastManager.show(error.message || 'Erro ao adicionar entrada', 'error');
       return false;
     }
-  }, [cashAmount, cashDescription, cashDate, addCashTransaction, t, validateCashInput]);
+  }, [addCash]);
 
-  const startEditing = useCallback((cashItem) => {
-    setEditingCashId(cashItem.id);
-    const amountInCents = Math.round(cashItem.amount * 100).toString();
-    setEditCashAmount(amountInCents);
-    setEditCashAmountDisplay(
-      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cashItem.amount)
-    );
-    setEditCashDescription(cashItem.description);
-    setEditCashDate(cashItem.date || getTodayDate());
-  }, []);
-
-  const cancelEditing = useCallback(() => {
-    setEditingCashId(null);
-    setEditCashAmount('');
-    setEditCashAmountDisplay('');
-    setEditCashDescription('');
-    setEditCashDate(getTodayDate());
-  }, []);
-
-  const updateCash = useCallback((onSuccess) => {
-    if (!validateCashInput(editCashAmount, editCashDescription)) return false;
-
-    const finalAmount = parseFloat(editCashAmount) / 100;
-
+  const handleUpdateCash = useCallback(async (id, data) => {
     try {
-      const result = updateCashTransaction(editingCashId, {
-        amount: finalAmount,
-        description: editCashDescription.trim(),
-        date: editCashDate,
-      });
-
-      if (result) {
-        Alert.alert(t('success'), t('cashUpdated'), [
-          { text: t('ok'), onPress: () => {
-            cancelEditing();
-            if (onSuccess) onSuccess();
-          }}
-        ]);
-        return true;
-      } else {
-        Alert.alert(t('error'), t('error'));
-        return false;
-      }
+      await updateCash(id, data);
+      ToastManager.show('Entrada atualizada!', 'success');
+      return true;
     } catch (error) {
-      console.error('Error in updateCash:', error);
-      Alert.alert(t('error'), t('error') + ': ' + error.message);
+      ToastManager.show(error.message || 'Erro ao atualizar entrada', 'error');
       return false;
     }
-  }, [editingCashId, editCashAmount, editCashDescription, editCashDate, updateCashTransaction, t, validateCashInput, cancelEditing]);
+  }, [updateCash]);
 
-  const deleteCash = useCallback((cashItem, onSuccess) => {
-    Alert.alert(
-      t('confirm') + ' ' + t('delete'),
-      t('wantToDelete') + ' "' + cashItem.description + '"?',
-      [
-        { text: t('cancel'), style: 'cancel' },
-        { text: t('delete'), style: 'destructive', onPress: () => {
-          deleteCashTransaction(cashItem.id);
-          if (onSuccess) onSuccess();
-        }},
-      ]
-    );
-  }, [deleteCashTransaction, t]);
+  const handleDeleteCash = useCallback(async (id) => {
+    try {
+      await deleteCash(id);
+      ToastManager.show('Entrada removida!', 'success');
+      return true;
+    } catch (error) {
+      ToastManager.show(error.message || 'Erro ao remover entrada', 'error');
+      return false;
+    }
+  }, [deleteCash]);
 
-  const resetCashForm = useCallback(() => {
-    setCashAmount('');
-    setCashAmountDisplay('');
-    setCashDescription('');
-    setCashDate(getTodayDate());
-  }, []);
-
-  const handleCashAmountChange = useCallback((text) => {
-    const { numeric, display } = parseCashInput(text);
-    setCashAmount(numeric);
-    setCashAmountDisplay(display);
-  }, [parseCashInput]);
-
-  const handleEditCashAmountChange = useCallback((text) => {
-    const { numeric, display } = parseCashInput(text);
-    setEditCashAmount(numeric);
-    setEditCashAmountDisplay(display);
-  }, [parseCashInput]);
+  const handleRefresh = useCallback(async () => {
+    try {
+      await refreshCash();
+      ToastManager.show('Dados atualizados!', 'success', 2000);
+    } catch (error) {
+      ToastManager.show('Erro ao atualizar dados', 'error');
+    }
+  }, [refreshCash]);
 
   return {
-    cashAmount,
-    cashAmountDisplay,
-    cashDescription,
-    cashDate,
-    editingCashId,
-    editCashAmount,
-    editCashAmountDisplay,
-    editCashDescription,
-    editCashDate,
-    setCashAmount,
-    setCashAmountDisplay,
-    setCashDescription,
-    setCashDate,
-    setEditCashDescription,
-    setEditCashDate,
-    submitCash,
-    updateCash,
-    deleteCash,
-    startEditing,
-    cancelEditing,
-    resetCashForm,
-    handleCashAmountChange,
-    handleEditCashAmountChange,
+    handleAddCash,
+    handleUpdateCash,
+    handleDeleteCash,
+    handleRefresh,
   };
-}
+};

@@ -1,25 +1,13 @@
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  FlatList,
-  Modal,
-  Alert,
-  Share,
-  ActivityIndicator,
-  ScrollView,
-  SafeAreaView,
-} from 'react-native';
-import * as Clipboard from 'expo-clipboard';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../context/AuthContext';
-import { useGroup } from '../context/GroupContext';
-import { useTheme } from '../context/ThemeContext';
-import { useI18n } from '../context/I18nContext';
-import { FadeInView, SlideInView } from '../components/AnimatedComponents';
+import React, { useState } from 'react';
+import { View, FlatList } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { useGroup } from '../contexts/GroupContext';
+import { AppHeader, BackButton } from '../components/Navigation';
+import { AlertPopup, Toast, ToastManager } from '../components/Overlays';
+import { LoadingSpinner, OfflineBanner } from '../components/Indicators';
+import { Screen, SectionHeader, EmptyState } from '../components/Layout';
 
 const GroupScreen = () => {
   const { user } = useAuth();

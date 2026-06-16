@@ -20,43 +20,28 @@ export const STORAGE_KEYS = {
 export const safeGetItem = async (key, defaultValue = null) => {
   try {
     const value = await AsyncStorage.getItem(key);
-
-    // Handle null, undefined, empty string
     if (value === null || value === undefined || value === '' || value === 'undefined' || value === 'null') {
       return defaultValue;
     }
-
-    // Check if value is a valid string
     if (typeof value !== 'string') return defaultValue;
-
-    // Trim whitespace
     const trimmed = value.trim();
     if (trimmed === '' || trimmed === 'undefined' || trimmed === 'null') {
       return defaultValue;
     }
-
-    // Check for incomplete JSON (starts with [ or { but doesn't end properly)
     if ((trimmed.startsWith('[') && !trimmed.endsWith(']')) ||
       (trimmed.startsWith('{') && !trimmed.endsWith('}'))) {
       console.warn(`Incomplete JSON for key ${key}, returning default`);
       return defaultValue;
     }
-
-    // Try to parse as JSON
     try {
       return JSON.parse(trimmed);
     } catch (parseError) {
-      // If it's not valid JSON, check if it's a simple value
       if (trimmed === 'true') return true;
       if (trimmed === 'false') return false;
-
-      // Try to parse as number
       const num = parseFloat(trimmed);
       if (!isNaN(num) && isFinite(num)) {
         return num;
       }
-
-      // Return raw string or default
       console.warn(`Invalid JSON for key ${key}, returning default. Value:`, trimmed.substring(0, 50));
       return defaultValue;
     }
@@ -69,42 +54,28 @@ export const safeGetItem = async (key, defaultValue = null) => {
 // Safe set with error handling and backup
 export const safeSetItem = async (key, value) => {
   try {
-    // Don't save undefined or null directly
     if (value === undefined || value === null) {
       console.warn(`Attempted to save null/undefined for key ${key}`);
       return false;
     }
-
     const jsonValue = JSON.stringify(value);
-
-    // Validate JSON before saving
     if (!jsonValue || jsonValue === '' || jsonValue === 'undefined' || jsonValue === 'null') {
       throw new Error('Failed to stringify value');
     }
-
-    // Check size limit (2MB for AsyncStorage)
-    // ✅ CORREÇÃO: Usa length da string em vez de new Blob()
-    const sizeInBytes = jsonValue.length * 2; // UTF-16 = 2 bytes por char
+    const sizeInBytes = jsonValue.length * 2;
     if (sizeInBytes > 2 * 1024 * 1024) {
       throw new Error('Data too large to save');
     }
-
     await AsyncStorage.setItem(key, jsonValue);
-
-    // Create backup after successful save
     await createBackup(key, jsonValue);
-
     return true;
   } catch (error) {
     console.error(`Error saving ${key}:`, error);
-
-    // Try to restore from backup
     const backup = await getBackup(key);
     if (backup) {
       console.log(`Restored ${key} from backup`);
-      return false; // Indicate save failed but backup exists
+      return false;
     }
-
     return false;
   }
 };
@@ -186,11 +157,9 @@ export const getStorageInfo = async () => {
     const items = await AsyncStorage.multiGet(keys);
     let totalSize = 0;
     const info = {};
-
     items.forEach(([key, value]) => {
       if (value) {
-        // ✅ CORREÇÃO: Usa length da string em vez de new Blob()
-        const size = value.length * 2; // UTF-16 = 2 bytes por char
+        const size = value.length * 2;
         totalSize += size;
         info[key] = {
           size: `${(size / 1024).toFixed(2)} KB`,
@@ -198,7 +167,6 @@ export const getStorageInfo = async () => {
         };
       }
     });
-
     return {
       totalKeys: keys.length,
       totalSize: `${(totalSize / 1024).toFixed(2)} KB`,
@@ -213,9 +181,7 @@ export const getStorageInfo = async () => {
 // Validate data integrity
 export const validateDataIntegrity = async () => {
   const issues = [];
-
   try {
-    // Check expenses
     const expenses = await safeGetItem(STORAGE_KEYS.EXPENSES, []);
     if (!Array.isArray(expenses)) {
       issues.push('Expenses data is corrupted');
@@ -226,19 +192,14 @@ export const validateDataIntegrity = async () => {
         if (!exp.description) issues.push(`Expense ${index}: missing description`);
       });
     }
-
-    // Check cards
     const cards = await safeGetItem(STORAGE_KEYS.CARDS, []);
     if (!Array.isArray(cards)) {
       issues.push('Cards data is corrupted');
     }
-
-    // Check categories
     const categories = await safeGetItem(STORAGE_KEYS.CUSTOM_CATEGORIES, []);
     if (!Array.isArray(categories)) {
       issues.push('Categories data is corrupted');
     }
-
     return {
       valid: issues.length === 0,
       issues,
@@ -276,16 +237,12 @@ export const exportAllData = async () => {
 export const importAllData = async (jsonString) => {
   try {
     const data = JSON.parse(jsonString);
-
-    // Validate structure
     if (!data.expenses || !Array.isArray(data.expenses)) {
       throw new Error('Invalid backup format: expenses missing');
     }
     if (!data.cards || !Array.isArray(data.cards)) {
       throw new Error('Invalid backup format: cards missing');
     }
-
-    // Save all data
     await safeSetItem(STORAGE_KEYS.EXPENSES, data.expenses);
     await safeSetItem(STORAGE_KEYS.CARDS, data.cards);
     await safeSetItem(STORAGE_KEYS.CATEGORY_LIMITS, data.categoryLimits || {});
@@ -293,10 +250,42 @@ export const importAllData = async (jsonString) => {
     await safeSetItem(STORAGE_KEYS.DARK_MODE, data.darkMode || false);
     await safeSetItem(STORAGE_KEYS.CASH_BALANCE, data.cashBalance || 0);
     await safeSetItem(STORAGE_KEYS.GOALS, data.goals || []);
-
     return true;
   } catch (error) {
     console.error('Import failed:', error);
     return false;
   }
 };
+
+// ============================================
+// FUNÇÕES DO StorageUtils.js (movidas para cá)
+// ============================================
+
+/**
+ * Limpa TODOS os dados do AsyncStorage
+ * Útil para reset completo do app
+ */
+export async function clearAllStorage() {
+  try {
+    await AsyncStorage.clear();
+    console.log('✅ AsyncStorage limpo completamente');
+    return true;
+  } catch (error) {
+    console.error('❌ Erro ao limpar AsyncStorage:', error);
+    return false;
+  }
+}
+
+/**
+ * Lista todas as chaves no AsyncStorage (para debug)
+ */
+export async function listStorageKeys() {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    console.log('Chaves no AsyncStorage:', keys);
+    return keys;
+  } catch (error) {
+    console.error('Erro ao listar chaves:', error);
+    return [];
+  }
+}

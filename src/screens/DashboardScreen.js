@@ -1,17 +1,17 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  FlatList,
-  Dimensions,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useExpenses } from '../context/ExpenseContext';
-import { useTheme } from '../context/ThemeContext';
-import { useI18n } from '../context/I18nContext';
+import React, { useState, useEffect } from 'react';
+import { View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { useCash } from '../contexts/CashContext';
+import { useExpense } from '../contexts/ExpenseContext';
+import { usePlanning } from '../contexts/PlanningContext';
+import { AppHeader } from '../components/Navigation';
+import { StatCard, SummaryRow, ChartCard, BudgetBar } from '../components/DataDisplay';
+import { PeriodFilter, SimpleList } from '../components/UtilsComponents';
+import { FadeIn, StaggerList } from '../components/Animations';
+import { Screen, SectionHeader, EmptyState } from '../components/Layout';
+import { LoadingSpinner } from '../components/Indicators';
 
 const { width } = Dimensions.get('window');
 

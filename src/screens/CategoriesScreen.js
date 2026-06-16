@@ -1,19 +1,13 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  Modal,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useExpenses } from '../context/ExpenseContext';
-import { useTheme } from '../context/ThemeContext';
-import { useI18n } from '../context/I18nContext';
-import { ScaleInView } from '../components/AnimatedComponents';
+import { View, FlatList } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { useExpense } from '../contexts/ExpenseContext';
+import { AppHeader, BackButton } from '../components/Navigation';
+import { SimpleList } from '../components/UtilsComponents';
+import { Badge } from '../components/Indicators';
+import { Screen, SectionHeader, EmptyState } from '../components/Layout';
 
 export default function CategoriesScreen({ navigation }) {
   const { categories, addCategory, updateCategory, deleteCategory, CATEGORIES } = useExpenses();

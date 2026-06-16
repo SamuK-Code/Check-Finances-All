@@ -1,20 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useExpenses } from '../context/ExpenseContext';
-import { useTheme } from '../context/ThemeContext';
-import { useI18n } from '../context/I18nContext';
-import { ScaleInView } from '../components/AnimatedComponents';
+import { View, ScrollView } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { useCash } from '../contexts/CashContext';
+import { useExpense } from '../contexts/ExpenseContext';
+import { AppHeader, BackButton } from '../components/Navigation';
+import { AlertPopup, Toast, ToastManager, BankSelectorModal } from '../components/Overlays';
+import { Input, CurrencyInput, Select, DatePicker, Toggle } from '../components/Forms';
+import { Screen, SectionHeader, BottomFixedButton } from '../components/Layout';
 
 export default function EditExpenseScreen({ navigation, route }) {
   const { expenseId } = route.params;

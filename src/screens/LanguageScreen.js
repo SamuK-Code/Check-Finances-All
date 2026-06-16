@@ -1,15 +1,11 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useI18n, availableLanguages } from '../context/I18nContext';
-import { useTheme } from '../context/ThemeContext';
-import { FadeInView, SlideInView } from '../components/AnimatedComponents';
+import { View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { AppHeader, BackButton } from '../components/Navigation';
+import { Select } from '../components/Forms';
+import { Screen, SectionHeader } from '../components/Layout';
 
 export default function LanguageScreen({ navigation }) {
   const { language, changeLanguage, t } = useI18n();

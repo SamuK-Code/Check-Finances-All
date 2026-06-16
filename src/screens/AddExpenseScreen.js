@@ -1,23 +1,14 @@
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useExpenses } from '../context/ExpenseContext';
-import { useTheme } from '../context/ThemeContext';
-import { useI18n } from '../context/I18nContext';
-import ExpenseListItem from '../components/ExpenseListItem';
-import { StaggeredList } from '../components/AnimatedComponents';
-import { SPACING, BORDER_RADIUS } from '../constants/DesignSystem';
+import React, { useState } from 'react';
+import { View, ScrollView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { useCash } from '../contexts/CashContext';
+import { useExpense } from '../contexts/ExpenseContext';
+import { AppHeader, BackButton } from '../components/Navigation';
+import { AlertPopup, Toast, ToastManager, BankSelectorModal } from '../components/Overlays';
+import { Input, CurrencyInput, Select, DatePicker, Toggle } from '../components/Forms';
+import { Screen, SectionHeader, BottomFixedButton } from '../components/Layout';
 
 const PaymentTypeButton = ({ selected, onPress, icon, title, subtitle, colors }) => (
   <TouchableOpacity
@@ -49,11 +40,11 @@ export default function AddExpenseScreen({ navigation }) {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [paymentType, setPaymentType] = useState('credit'); // credit, debit, cash, standalone
+  const [paymentType, setPaymentType] = useState('credit');
   const [selectedCard, setSelectedCard] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { addExpense, cards, CATEGORIES } = useExpenses();
+  const { addExpense, cards, CATEGORIES, expenses } = useExpenses();
   const { colors } = useTheme();
   const { t } = useI18n();
 
@@ -62,20 +53,16 @@ export default function AddExpenseScreen({ navigation }) {
       Alert.alert(t('error'), t('fillValueAndDesc'));
       return;
     }
-
     const numAmount = parseFloat(amount.replace(',', '.'));
     if (isNaN(numAmount) || numAmount <= 0) {
       Alert.alert(t('error'), t('enterValidValue'));
       return;
     }
-
     if ((paymentType === 'credit' || paymentType === 'debit') && !selectedCard) {
       Alert.alert(t('error'), 'Selecione um cartão');
       return;
     }
-
     setIsLoading(true);
-
     const expenseData = {
       amount: numAmount,
       description,
@@ -85,11 +72,8 @@ export default function AddExpenseScreen({ navigation }) {
       cardId: (paymentType === 'credit' || paymentType === 'debit') ? selectedCard : null,
       isBill: paymentType === 'standalone',
     };
-
     const result = addExpense(expenseData);
-
     setIsLoading(false);
-
     if (result.success) {
       Alert.alert(t('success'), t('expenseAdded'));
       navigation.goBack();
@@ -101,14 +85,12 @@ export default function AddExpenseScreen({ navigation }) {
   const showCardSelector = paymentType === 'credit' || paymentType === 'debit';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScreenLayout title={t('newExpense')}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text style={[styles.title, { color: colors.text }]}>{t('newExpense')}</Text>
-
+        <ScrollView contentContainerStyle={[styles.scrollContent, safeScrollPadding]}>
           {/* Valor */}
           <View style={styles.inputContainer}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>{t('amount')}</Text>
@@ -177,7 +159,7 @@ export default function AddExpenseScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Seletor de Cartão (se crédito ou débito) */}
+          {/* Seletor de Cartão */}
           {showCardSelector && (
             <View style={styles.inputContainer}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>{t('selectCard')}</Text>
@@ -268,7 +250,7 @@ export default function AddExpenseScreen({ navigation }) {
                 {expenses.slice(0, 5).map((expense) => (
                   <View key={expense.id} style={{ marginBottom: SPACING.sm }}>
                     <ExpenseListItem
-                      expense={expense}
+                      item={expense}
                       onPay={() => {}}
                       onDelete={() => {}}
                       compact
@@ -296,16 +278,18 @@ export default function AddExpenseScreen({ navigation }) {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scrollContent: { padding: 20, paddingBottom: 40 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 24 },
+  scrollContent: { 
+    padding: 20, 
+    paddingBottom: 120  // AUMENTADO: safe area para HUD
+  },
+  // ... resto dos styles iguais
+  recentSection: { borderTopWidth: 1, borderTopColor: '#e0e0e0', paddingTop: SPACING.lg },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: SPACING.md },
-  recentSection: { borderTopWidth: 1, paddingTop: SPACING.lg },
   inputContainer: { marginBottom: 20 },
   label: { fontSize: 14, marginBottom: 8, fontWeight: '600' },
   input: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, borderWidth: 1 },

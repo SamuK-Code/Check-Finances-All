@@ -1,16 +1,14 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Modal,
-  KeyboardAvoidingView, Platform, ScrollView, SafeAreaView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useExpenses } from '../context/ExpenseContext';
-import { usePlanning } from '../context/PlanningContext';
-import { useCash } from '../context/CashContext';
-import { useTheme } from '../context/ThemeContext';
-import { useI18n } from '../context/I18nContext';
-import GoalMapItem from '../components/GoalMapItem';
-import { SPACING, BORDER_RADIUS } from '../constants/DesignSystem';
+import React, { useState } from 'react';
+import { View, FlatList } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { usePlanning } from '../contexts/PlanningContext';
+import { AppHeader, BackButton } from '../components/Navigation';
+import { GoalMapItem } from '../components/UtilsComponents';
+import { ProgressRing, BudgetBar } from '../components/DataDisplay';
+import { Screen, SectionHeader, EmptyState } from '../components/Layout';
+import { LoadingSpinner } from '../components/Indicators';
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);

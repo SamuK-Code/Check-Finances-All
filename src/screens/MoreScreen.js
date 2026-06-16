@@ -1,16 +1,12 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext';
-import { useI18n } from '../context/I18nContext';
-import { useAuth } from '../context/AuthContext';
+import { View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useI18n } from '../contexts/I18nContext';
+import { AppHeader } from '../components/Navigation';
+import { SimpleList } from '../components/UtilsComponents';
+import { Screen, SectionHeader } from '../components/Layout';
+import { FadeIn } from '../components/Animations';
 
 const MenuItem = ({ icon, title, subtitle, onPress, colors }) => (
   <TouchableOpacity 
