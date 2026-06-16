@@ -11,37 +11,37 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 // ═══════════════════════════════════════════════════════════
 // CONTEXTS (ordem corrigida: GroupProvider antes de Cash/Expense/Planning)
 // ═══════════════════════════════════════════════════════════
-import { AuthProvider } from './contexts/AuthContext';
-import { I18nProvider } from './contexts/I18nContext';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { GroupProvider } from './contexts/GroupContext';
-import { CashProvider } from './contexts/CashContext';
-import { ExpenseProvider } from './contexts/ExpenseContext';
-import { PlanningProvider } from './contexts/PlanningContext';
+import { AuthProvider } from './src/contexts/AuthContext';
+import { I18nProvider } from './src/contexts/I18nContext';
+import { ThemeProvider } from './src/contexts/ThemeContext';
+import { GroupProvider } from './src/contexts/GroupContext';
+import { CashProvider } from './src/contexts/CashContext';
+import { ExpenseProvider } from './src/contexts/ExpenseContext';
+import { PlanningProvider } from './src/contexts/PlanningContext';
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTS CONSOLIDADOS
 // ═══════════════════════════════════════════════════════════
-import { ToastProvider } from './components/Overlays';
+import { ToastProvider } from './src/components/Overlays';
 
 // ═══════════════════════════════════════════════════════════
 // SCREENS
 // ═══════════════════════════════════════════════════════════
-import LoginScreen from './screens/LoginScreen';
-import DashboardScreen from './screens/DashboardScreen';
-import CardsScreen from './screens/CardsScreen';
-import AddExpenseScreen from './screens/AddExpenseScreen';
-import EditExpenseScreen from './screens/EditExpenseScreen';
-import ChartScreen from './screens/ChartScreen';
-import ChartDetailScreen from './screens/ChartDetailScreen';
-import PlanningScreen from './screens/PlanningScreen';
-import HistoryScreen from './screens/HistoryScreen';
-import CategoriesScreen from './screens/CategoriesScreen';
-import GroupScreen from './screens/GroupScreen';
-import SyncScreen from './screens/SyncScreen';
-import SettingsScreen from './screens/SettingsScreen';
-import MoreScreen from './screens/MoreScreen';
-import LanguageScreen from './screens/LanguageScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import DashboardScreen from './src/screens/DashboardScreen';
+import CardsScreen from './src/screens/CardsScreen';
+import AddExpenseScreen from './src/screens/AddExpenseScreen';
+import EditExpenseScreen from './src/screens/EditExpenseScreen';
+import ChartScreen from './src/screens/ChartScreen';
+import ChartDetailScreen from './src/screens/ChartDetailScreen';
+import PlanningScreen from './src/screens/PlanningScreen';
+import HistoryScreen from './src/screens/HistoryScreen';
+import CategoriesScreen from './src/screens/CategoriesScreen';
+import GroupScreen from './src/screens/GroupScreen';
+import SyncScreen from './src/screens/SyncScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+import MoreScreen from './src/screens/MoreScreen';
+import LanguageScreen from './src/screens/LanguageScreen';
 
 // ═══════════════════════════════════════════════════════════
 // NAVIGATION SETUP
