@@ -1,42 +1,54 @@
+// App.js — COM GROUP PROVIDER
+
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 
 import { AppProvider } from './src/context/AppContext';
-import { ThemeProvider } from './src/context/ThemeContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { LanguageProvider } from './src/context/LanguageContext';
+import { UserProvider } from './src/context/UserContext';
+import { GroupProvider } from './src/context/GroupContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import SplashScreen from './src/components/SplashScreen';
 
-export default function App() {
+function AppContent() {
+  const { colors } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
 
   return (
+    <View style={{ flex: 1, backgroundColor: colors.bgPrimary }}>
+      {showSplash && (
+        <SplashScreen onFinish={() => setShowSplash(false)} />
+      )}
+
+      {!showSplash && (
+        <NavigationContainer>
+          <AppNavigator />
+        </NavigationContainer>
+      )}
+
+      {!showSplash && <StatusBar style="auto" />}
+    </View>
+  );
+}
+
+export default function App() {
+  return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AppProvider>
-          
-          {/* Splash Screen em primeiro plano absoluto */}
-          {showSplash && (
-            <View style={StyleSheet.absoluteFillObject} pointerEvents="auto">
-              <SplashScreen onFinish={() => setShowSplash(false)} />
-            </View>
-          )}
-
-          <NavigationContainer>
-            <AppNavigator />
-          </NavigationContainer>
-
-          {!showSplash && <StatusBar style="auto" />}
-        </AppProvider>
+        <LanguageProvider>
+          <UserProvider>
+            <GroupProvider>
+              <AppProvider>
+                <AppContent />
+              </AppProvider>
+            </GroupProvider>
+          </UserProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});

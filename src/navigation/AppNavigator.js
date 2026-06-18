@@ -1,7 +1,9 @@
+// AppNavigator.js — COM ABA GRUPOS
+
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, View, Text } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +15,7 @@ import CardsScreen from '../screens/CardsScreen';
 import GoalsScreen from '../screens/GoalsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import GroupScreen from '../screens/GroupScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -21,7 +24,6 @@ function TabNavigator() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
-  // Define a folga inferior com base no dispositivo para não sumir atrás do HUD
   const paddingBottomAmount = insets.bottom > 0 ? insets.bottom : 10;
   const tabBarHeight = 62 + paddingBottomAmount;
 
@@ -66,7 +68,10 @@ function TabNavigator() {
               iconName = focused ? 'card' : 'card-outline';
               break;
             case 'Metas':
-              iconName = focused ? 'pie-chart' : 'pie-chart-outline';
+              iconName = focused ? 'flag' : 'flag-outline';
+              break;
+            case 'Grupos':
+              iconName = focused ? 'people' : 'people-outline';
               break;
             default:
               iconName = 'checkbox-outline';
@@ -80,29 +85,28 @@ function TabNavigator() {
       <Tab.Screen name="Historico" component={HistoryScreen} options={{ tabBarLabel: 'Histórico' }} />
       <Tab.Screen name="Cartoes" component={CardsScreen} options={{ tabBarLabel: 'Cartões' }} />
       <Tab.Screen name="Metas" component={GoalsScreen} options={{ tabBarLabel: 'Metas' }} />
+      <Tab.Screen name="Grupos" component={GroupScreen} options={{ tabBarLabel: 'Grupos' }} />
     </Tab.Navigator>
   );
 }
 
 export default function AppNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
       <Stack.Screen name="Main" component={TabNavigator} />
-      <Stack.Screen 
-        name="Configuracoes" 
+      <Stack.Screen
+        name="Configuracoes"
         component={SettingsScreen}
-        options={{ 
-          headerShown: true,
-          headerTitle: '',
-        }}
+        options={{ headerShown: false }}
       />
-      <Stack.Screen 
-        name="Notificacoes" 
+      <Stack.Screen
+        name="Notificacoes"
         component={NotificationsScreen}
-        options={{ 
-          headerShown: true,
-          headerTitle: '',
-        }}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

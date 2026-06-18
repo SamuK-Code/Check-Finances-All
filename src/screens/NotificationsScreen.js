@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+// NotificationsScreen.js — COMPLETO
+
+import React from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
@@ -11,24 +12,6 @@ const NotificationsScreen = () => {
   const navigation = useNavigation();
   const { notifications, markNotificationAsRead, clearAllNotifications } = useApp();
   const { colors } = useTheme();
-
-  // Configurar header dinamicamente baseado no tema
-  useEffect(() => {
-    navigation.setOptions({
-      headerStyle: {
-        backgroundColor: colors.bgCard,
-        borderBottomColor: colors.border,
-        borderBottomWidth: 1,
-      },
-      headerTintColor: colors.primary,
-      headerTitle: () => (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Ionicons name="notifications" size={20} color={colors.primary} />
-          <Text style={{ fontSize: 18, fontWeight: '700', color: colors.textPrimary }}>Notificações</Text>
-        </View>
-      ),
-    });
-  }, [colors, navigation]);
 
   const getIconByType = (type) => {
     switch (type) {
@@ -49,8 +32,23 @@ const NotificationsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 16 }}>
+    <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
+      {/* Header customizado igual às outras telas */}
+      <View style={[styles.header, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+          <Ionicons name="notifications" size={20} color={colors.primary} />  Notificações
+        </Text>
+        <View style={styles.backBtn} />
+      </View>
+
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{ paddingTop: 16 }}
+      >
         {notifications.length > 0 && (
           <TouchableOpacity 
             style={[styles.clearBar, { backgroundColor: colors.bgCard }]}
@@ -109,12 +107,23 @@ const NotificationsScreen = () => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  header: { 
+    paddingTop: 50, 
+    paddingHorizontal: 16, 
+    paddingBottom: 16, 
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: '700', flex: 1, textAlign: 'center' },
   clearBar: { 
     flexDirection: 'row', 
     alignItems: 'center', 
@@ -125,7 +134,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   clearText: { fontSize: 14, fontWeight: '600' },
-  content: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
+  content: { flex: 1, paddingHorizontal: 16 },
 
   emptyState: { 
     flex: 1, 
