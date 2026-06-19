@@ -1,164 +1,291 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import { useTheme } from '../context/ThemeContext';
 
-export default function GoalCard({ goal, onContribute }) {
-  const { colors } = useTheme();
+// Lista grande de ícones disponíveis para metas
+export const GOAL_ICONS = [
+  'airplane', 'alarm', 'american-football', 'aperture', 'archive', 'barbell',
+  'basket', 'basketball', 'bed', 'beer', 'bicycle', 'boat', 'book', 'briefcase',
+  'brush', 'bug', 'build', 'bus', 'cafe', 'camera', 'car', 'card', 'cart',
+  'cash', 'cellular', 'chatbubble', 'checkmark-circle', 'clipboard', 'clock',
+  'cloud', 'code', 'color-palette', 'compass', 'construct', 'cube', 'desktop',
+  'diamond', 'document', 'earth', 'egg', 'extension-puzzle', 'eye', 'female',
+  'film', 'filter', 'finger-print', 'fish', 'fitness', 'flag', 'flame',
+  'flash', 'flashlight', 'flower', 'football', 'game-controller', 'gift',
+  'glasses', 'globe', 'golf', 'grid', 'hammer', 'happy', 'headset', 'heart',
+  'home', 'ice-cream', 'image', 'key', 'laptop', 'leaf', 'library', 'link',
+  'list', 'location', 'lock-closed', 'log-in', 'logo-apple', 'logo-bitcoin',
+  'logo-css3', 'logo-docker', 'logo-figma', 'logo-firebase', 'logo-github',
+  'logo-google', 'logo-html5', 'logo-javascript', 'logo-nodejs', 'logo-npm',
+  'logo-python', 'logo-react', 'logo-stackoverflow', 'logo-tux', 'logo-vue',
+  'logo-youtube', 'magnet', 'mail', 'male', 'map', 'medal', 'medical', 'megaphone',
+  'mic', 'moon', 'musical-note', 'navigate', 'notifications', 'nuclear',
+  'nutrition', 'paper-plane', 'partly-sunny', 'paw', 'pencil', 'people',
+  'person', 'phone-portrait', 'pie-chart', 'pin', 'pizza', 'planet', 'pricetag',
+  'print', 'pulse', 'push', 'radio', 'rainy', 'receipt', 'restaurant', 'ribbon',
+  'rocket', 'rose', 'school', 'search', 'send', 'settings', 'shield-checkmark',
+  'shirt', 'snow', 'sparkles', 'speedometer', 'star', 'stopwatch', 'storefront',
+  'subway', 'sunny', 'sync', 'tennisball', 'terminal', 'thermometer', 'thumbs-up',
+  'thunderstorm', 'ticket', 'time', 'timer', 'today', 'trail-sign', 'train',
+  'transgender', 'trash', 'trending-up', 'trophy', 'tv', 'umbrella', 'videocam',
+  'volume-high', 'walk', 'wallet', 'warning', 'watch', 'water', 'wifi', 'wine',
+];
 
-  const progress = (goal.current / goal.target) * 100;
-  const daysLeft = Math.ceil((new Date(goal.deadline) - new Date()) / (1000 * 60 * 60 * 24));
+const GoalCard = ({ goal, onInvest, onComplete, colors }) => {
+  const progress = goal.target > 0 ? (goal.current / goal.target) * 100 : 0;
+  const isCompleted = progress >= 100;
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
+  // Animação da posição do corredor
+  const runnerPosition = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(runnerPosition, {
+      toValue: Math.min(progress, 100),
+      duration: 1000,
+      useNativeDriver: false,
+    }).start();
+  }, [progress]);
+
+  const interpolatedPosition = runnerPosition.interpolate({
+    inputRange: [0, 100],
+    outputRange: ['0%', '92%'],
+  });
+
+  // Calcular dias desde criação
+  const daysSince = goal.createdAt 
+    ? Math.floor((Date.now() - new Date(goal.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
 
   return (
-    <View style={[styles.container, { 
-      backgroundColor: colors.bgCard,
-      borderLeftColor: goal.color,
-      shadowColor: colors.shadow,
-    }]}>
+    <View style={[styles.card, { backgroundColor: colors.bgCard }]}>
+      {/* Header: Ícone + Título + Valores */}
       <View style={styles.header}>
-        <View style={[styles.iconContainer, { backgroundColor: goal.color }]}>
-          <Ionicons name={goal.icon} size={20} color="white" />
-        </View>
-
-        <View style={styles.info}>
-          <Text style={[styles.name, { color: colors.textPrimary }]}>{goal.name}</Text>
-          <View style={styles.deadline}>
-            <Ionicons name="clock" size={10} color={colors.textMuted} />
-            <Text style={[styles.deadlineText, { color: colors.textMuted }]}>
-              {daysLeft > 0 ? `${daysLeft} dias restantes` : 'Prazo encerrado'}
+        <View style={styles.leftSection}>
+          <View style={[styles.iconContainer, { backgroundColor: (goal.color || colors.primary) + '15' }]}>
+            <Ionicons 
+              name={goal.icon || 'flag'} 
+              size={28} 
+              color={goal.color || colors.primary} 
+            />
+          </View>
+          <View style={styles.titleSection}>
+            <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>
+              {goal.name}
             </Text>
           </View>
         </View>
 
-        <View style={styles.amount}>
-          <Text style={[styles.current, { color: goal.color }]}>
-            {formatCurrency(goal.current)}
+        <View style={styles.valuesSection}>
+          <Text style={[styles.currentValue, { color: colors.textPrimary }]}>
+            R$ {goal.current?.toFixed(2)}
           </Text>
-          <Text style={[styles.target, { color: colors.textMuted }]}>
-            de {formatCurrency(goal.target)}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.progressContainer}>
-        <View style={[styles.progressBar, { backgroundColor: colors.bgTertiary }]}>
-          <View style={[styles.progressFill, { 
-            width: `${Math.min(progress, 100)}%`, 
-            backgroundColor: goal.color 
-          }]} />
-        </View>
-        <View style={styles.progressText}>
-          <Text style={[styles.progressLabel, { color: colors.textMuted }]}>
-            {progress.toFixed(1)}% completo
-          </Text>
-          <Text style={[styles.progressLabel, { color: colors.textMuted }]}>
-            {formatCurrency(goal.target - goal.current)} restantes
+          <Text style={[styles.targetValue, { color: colors.textMuted }]}>
+            / R$ {goal.target?.toFixed(2)}
           </Text>
         </View>
       </View>
 
-      {!goal.completed && (
+      {/* Progress Bar */}
+      <View style={styles.progressSection}>
+        <View style={styles.progressLabels}>
+          <Text style={[styles.percentText, { color: colors.textSecondary }]}>
+            {progress.toFixed(0)}%
+          </Text>
+          <View style={styles.runnerTrack}>
+            <Animated.View style={[styles.runner, { left: interpolatedPosition }]}>
+              <Ionicons name="walk" size={20} color={colors.primary} />
+            </Animated.View>
+          </View>
+          <Ionicons 
+            name="flag" 
+            size={20} 
+            color={isCompleted ? colors.success : colors.textMuted} 
+          />
+        </View>
+
+        <View style={[styles.progressTrack, { backgroundColor: colors.bgTertiary }]}>
+          <View 
+            style={[
+              styles.progressFill, 
+              { 
+                width: `${Math.min(progress, 100)}%`,
+                backgroundColor: isCompleted ? colors.success : (goal.color || colors.primary),
+              }
+            ]} 
+          />
+        </View>
+      </View>
+
+      {/* Info: Dias */}
+      <Text style={[styles.daysText, { color: colors.textMuted }]}>
+        <Ionicons name="time-outline" size={12} /> {daysSince} {daysSince === 1 ? 'dia' : 'dias'} desde o início
+      </Text>
+
+      {/* Actions */}
+      <View style={styles.actions}>
         <TouchableOpacity 
-          style={styles.contributeButton}
-          onPress={() => onContribute(goal)}
+          style={[styles.button, styles.investButton, { borderColor: colors.primary }]}
+          onPress={() => onInvest(goal, 'deposit')}
+          activeOpacity={0.7}
         >
-          <Ionicons name="plus" size={12} color={colors.primary} />
-          <Text style={[styles.contributeText, { color: colors.primary }]}>
-            Contribuir
+          <Ionicons name="add-circle" size={16} color={colors.primary} />
+          <Text style={[styles.buttonText, { color: colors.primary }]}>Investir</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.button, styles.withdrawButton, { borderColor: colors.warning }]}
+          onPress={() => onInvest(goal, 'withdraw')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="remove-circle" size={16} color={colors.warning} />
+          <Text style={[styles.buttonText, { color: colors.warning }]}>Retirar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[
+            styles.button, 
+            styles.completeButton, 
+            { 
+              borderColor: isCompleted ? colors.success : colors.textMuted + '40',
+              backgroundColor: isCompleted ? colors.success + '10' : 'transparent',
+            }
+          ]}
+          onPress={() => isCompleted && onComplete(goal)}
+          activeOpacity={isCompleted ? 0.7 : 1}
+          disabled={!isCompleted}
+        >
+          <Ionicons 
+            name={isCompleted ? "checkmark-circle" : "ellipse-outline"} 
+            size={16} 
+            color={isCompleted ? colors.success : colors.textMuted} 
+          />
+          <Text style={[styles.buttonText, { color: isCompleted ? colors.success : colors.textMuted }]}>
+            {isCompleted ? 'Concluir' : `${(100 - progress).toFixed(0)}% restante`}
           </Text>
         </TouchableOpacity>
-      )}
+      </View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {
-    borderRadius: 16,
+  card: {
+    borderRadius: 20,
     padding: 20,
-    marginBottom: 12,
-    borderLeftWidth: 4,
+    marginBottom: 16,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
   },
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  info: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  deadline: {
+  leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    flex: 1,
+    marginRight: 12,
   },
-  deadlineText: {
-    fontSize: 12,
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
   },
-  amount: {
-    alignItems: 'flex-end',
+  titleSection: {
+    flex: 1,
   },
-  current: {
+  title: {
     fontSize: 18,
     fontWeight: '700',
   },
-  target: {
-    fontSize: 12,
+  valuesSection: {
+    alignItems: 'flex-end',
   },
-  progressContainer: {
-    marginTop: 4,
+  currentValue: {
+    fontSize: 18,
+    fontWeight: '700',
   },
-  progressBar: {
+  targetValue: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  progressSection: {
+    marginBottom: 10,
+  },
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    height: 24,
+  },
+  percentText: {
+    fontSize: 14,
+    fontWeight: '600',
+    minWidth: 40,
+  },
+  runnerTrack: {
+    flex: 1,
+    height: 24,
+    position: 'relative',
+    marginHorizontal: 8,
+  },
+  runner: {
+    position: 'absolute',
+    top: 0,
+    transform: [{ translateX: -10 }],
+  },
+  progressTrack: {
     height: 8,
-    borderRadius: 999,
+    borderRadius: 4,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 999,
+    borderRadius: 4,
   },
-  progressText: {
+  daysText: {
+    fontSize: 11,
+    marginBottom: 14,
+  },
+  actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 6,
+    alignItems: 'center',
+    gap: 8,
   },
-  progressLabel: {
-    fontSize: 12,
-  },
-  contributeButton: {
+  button: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    flex: 1,
     justifyContent: 'center',
-    gap: 8,
-    marginTop: 12,
-    paddingVertical: 8,
   },
-  contributeText: {
-    fontSize: 14,
+  investButton: {
+    backgroundColor: 'transparent',
+  },
+  withdrawButton: {
+    backgroundColor: 'transparent',
+  },
+  completeButton: {
+    backgroundColor: 'transparent',
+  },
+  buttonText: {
+    fontSize: 13,
     fontWeight: '600',
   },
 });
+
+export default GoalCard;

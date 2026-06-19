@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TouchableOpacity, View, Text } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslate } from '../hooks/useTranslate';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import HomeScreen from '../screens/HomeScreen';
@@ -23,6 +24,7 @@ const Stack = createNativeStackNavigator();
 function TabNavigator() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslate();
 
   const paddingBottomAmount = insets.bottom > 0 ? insets.bottom : 10;
   const tabBarHeight = 62 + paddingBottomAmount;
@@ -55,22 +57,22 @@ function TabNavigator() {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
           switch (route.name) {
-            case 'Inicio':
+            case 'Home':
               iconName = focused ? 'home' : 'home-outline';
               break;
-            case 'Adicionar':
+            case 'Expenses':
               iconName = focused ? 'add-circle' : 'add-circle-outline';
               break;
-            case 'Historico':
+            case 'History':
               iconName = focused ? 'time' : 'time-outline';
               break;
-            case 'Cartoes':
+            case 'Cards':
               iconName = focused ? 'card' : 'card-outline';
               break;
-            case 'Metas':
+            case 'Goals':
               iconName = focused ? 'flag' : 'flag-outline';
               break;
-            case 'Grupos':
+            case 'Groups':
               iconName = focused ? 'people' : 'people-outline';
               break;
             default:
@@ -80,12 +82,12 @@ function TabNavigator() {
         },
       })}
     >
-      <Tab.Screen name="Inicio" component={HomeScreen} options={{ tabBarLabel: 'Início' }} />
-      <Tab.Screen name="Adicionar" component={AddScreen} options={{ tabBarLabel: 'Adicionar' }} />
-      <Tab.Screen name="Historico" component={HistoryScreen} options={{ tabBarLabel: 'Histórico' }} />
-      <Tab.Screen name="Cartoes" component={CardsScreen} options={{ tabBarLabel: 'Cartões' }} />
-      <Tab.Screen name="Metas" component={GoalsScreen} options={{ tabBarLabel: 'Metas' }} />
-      <Tab.Screen name="Grupos" component={GroupScreen} options={{ tabBarLabel: 'Grupos' }} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: t('appnavigator.home') }} />
+      <Tab.Screen name="Expenses" component={AddScreen} options={{ tabBarLabel: t('appnavigator.expenses') }} />
+      <Tab.Screen name="History" component={HistoryScreen} options={{ tabBarLabel: t('appnavigator.history') }} />
+      <Tab.Screen name="Cards" component={CardsScreen} options={{ tabBarLabel: t('appnavigator.cards') }} />
+      <Tab.Screen name="Goals" component={GoalsScreen} options={{ tabBarLabel: t('appnavigator.goals') }} />
+      <Tab.Screen name="Groups" component={GroupScreen} options={{ tabBarLabel: t('appnavigator.groups') }} />
     </Tab.Navigator>
   );
 }
@@ -99,12 +101,12 @@ export default function AppNavigator() {
     >
       <Stack.Screen name="Main" component={TabNavigator} />
       <Stack.Screen
-        name="Configuracoes"
+        name="Settings"
         component={SettingsScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="Notificacoes"
+        name="Notifications"
         component={NotificationsScreen}
         options={{ headerShown: false }}
       />

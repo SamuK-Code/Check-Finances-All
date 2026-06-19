@@ -1,4 +1,4 @@
-// SettingsScreen.js — COM PERFIL DO USUÁRIO (nome + foto)
+// SettingsScreen.js — COM PERFIL DO USUÁRIO (nome + foto) E TRADUÇÕES COMPLETAS — CORRIGIDO
 
 import React, { useState } from 'react';
 import Ionicons from '@react-native-vector-icons/ionicons';
@@ -25,7 +25,7 @@ import { useTranslate } from '../hooks/useTranslate';
 import Toast from '../components/Toast';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 
 const SettingsScreen = () => {
   const navigation = useNavigation();
@@ -75,17 +75,17 @@ const SettingsScreen = () => {
     setToast({ visible: true, message, type });
   };
 
-  // ✅ PICKER DE FOTO — CORRIGIDO (sem MediaTypeOptions)
+  // PICKER DE FOTO
   const pickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        showToast('Permissão de acesso à galeria negada', 'error');
+        showToast(t('settings.photoError'), 'error');
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'], // ✅ CORRIGIDO: array de strings
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
@@ -93,10 +93,10 @@ const SettingsScreen = () => {
 
       if (!result.canceled && result.assets[0].uri) {
         updateAvatar(result.assets[0].uri);
-        showToast('Foto atualizada!');
+        showToast(t('settings.photoUpdated'));
       }
     } catch (e) {
-      showToast('Erro ao selecionar foto', 'error');
+      showToast(t('settings.photoError'), 'error');
     }
   };
 
@@ -104,7 +104,7 @@ const SettingsScreen = () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        showToast('Permissão de câmera negada', 'error');
+        showToast(t('settings.cameraError'), 'error');
         return;
       }
 
@@ -116,27 +116,27 @@ const SettingsScreen = () => {
 
       if (!result.canceled && result.assets[0].uri) {
         updateAvatar(result.assets[0].uri);
-        showToast('Foto atualizada!');
+        showToast(t('settings.photoUpdated'));
       }
     } catch (e) {
-      showToast('Erro ao tirar foto', 'error');
+      showToast(t('settings.cameraError'), 'error');
     }
   };
 
   const handlePhotoOptions = () => {
     Alert.alert(
-      'Foto de Perfil',
-      'Escolha uma opção',
+      t('settings.profilePhoto'),
+      t('settings.choosePhotoOption') || 'Escolha uma opção',
       [
-        { text: t('cancel'), style: 'cancel' },
-        { text: 'Galeria', onPress: pickImage },
-        { text: 'Câmera', onPress: takePhoto },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('settings.gallery'), onPress: pickImage },
+        { text: t('settings.camera'), onPress: takePhoto },
         userProfile.avatar && { 
-          text: 'Remover Foto', 
+          text: t('settings.removePhoto'), 
           style: 'destructive',
           onPress: () => {
             clearAvatar();
-            showToast('Foto removida', 'warning');
+            showToast(t('settings.photoRemoved'), 'warning');
           }
         },
       ].filter(Boolean)
@@ -145,37 +145,74 @@ const SettingsScreen = () => {
 
   const handleSaveName = () => {
     if (!editName.trim()) {
-      showToast('Digite um nome válido', 'error');
+      showToast(t('settings.invalidName'), 'error');
       return;
     }
     updateName(editName.trim());
     setProfileModalVisible(false);
-    showToast('Nome atualizado!');
+    showToast(t('settings.nameUpdated'));
   };
 
-  // ... (handleExport, handleImport, handleClearData, handleAddCategory, handleResetCategories permanecem iguais)
-
+  // ═══════════════════════════════════════════════════════════
+  // 📤 EXPORTAR DADOS — CORRIGIDO
+  // ═══════════════════════════════════════════════════════════
   const handleExport = async () => {
     try {
       const data = await exportData();
-      const fileUri = FileSystem.documentDirectory + `financas_pro_backup_${new Date().toISOString().slice(0,10)}.json`;
-      await FileSystem.writeAsStringAsync(fileUri, data);
+      const fileName = `financas_pro_backup_${new Date().toISOString().slice(0,10)}.json`;
+      const file = new File(Paths.document, fileName);
+      file.create({ overwrite: true });
+      file.write(data);
+      const fileUri = file.uri;
+      
 
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri);
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/json',
+          dialogTitle: 'Finanças Pro - Backup',
+          UTI: 'public.json',
+        });
       }
       showToast(t('settings.dataExported'));
     } catch (e) {
+      console.warn('Erro ao exportar:', e);
       showToast(t('settings.errorExport'), 'error');
     }
   };
 
+  // ═══════════════════════════════════════════════════════════
+  // 📥 IMPORTAR DADOS — CORRIGIDO
+  // ═══════════════════════════════════════════════════════════
   const handleImport = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: 'application/json' });
-      if (result.canceled) return;
+      const result = await DocumentPicker.getDocumentAsync({ 
+        type: 'application/json',
+        copyToCacheDirectory: true,
+      });
+      
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
 
-      const fileContent = await FileSystem.readAsStringAsync(result.assets[0].uri);
+      const fileUri = result.assets[0].uri;
+      const file = new File(fileUri);
+      const fileContent = await file.text();
+      
+      // Validar JSON antes de importar
+      let parsed;
+      try {
+        parsed = JSON.parse(fileContent);
+      } catch (parseErr) {
+        showToast(t('settings.errorImport') + ' — JSON inválido', 'error');
+        return;
+      }
+
+      // Validar estrutura mínima
+      if (!parsed || typeof parsed !== 'object') {
+        showToast(t('settings.errorImport') + ' — Arquivo inválido', 'error');
+        return;
+      }
+
       const success = await importData(fileContent);
 
       if (success) {
@@ -184,6 +221,7 @@ const SettingsScreen = () => {
         showToast(t('settings.errorImport'), 'error');
       }
     } catch (e) {
+      console.warn('Erro ao importar:', e);
       showToast(t('settings.errorImport'), 'error');
     }
   };
@@ -193,7 +231,7 @@ const SettingsScreen = () => {
       '⚠️ ' + t('settings.clearConfirm'),
       '',
       [
-        { text: t('cancel'), style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
           text: t('settings.clear'),
           style: 'destructive',
@@ -202,12 +240,11 @@ const SettingsScreen = () => {
               t('settings.clearSure'),
               t('settings.clearUndone'),
               [
-                { text: t('cancel'), style: 'cancel' },
+                { text: t('common.cancel'), style: 'cancel' },
                 {
-                  text: t('confirm'),
+                  text: t('common.confirm'),
                   style: 'destructive',
                   onPress: async () => {
-                    // Se estiver em um grupo, sair primeiro (remove shared_items e membership)
                     if (currentUser && leaveGroup) {
                       await leaveGroup();
                     }
@@ -247,9 +284,9 @@ const SettingsScreen = () => {
       t('settings.resetCategories'),
       t('settings.resetConfirm'),
       [
-        { text: t('cancel'), style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: t('reset'),
+          text: t('common.reset'),
           style: 'destructive',
           onPress: () => {
             setCustomCategories([]);
@@ -267,7 +304,7 @@ const SettingsScreen = () => {
   const handleLanguageChange = (lang) => {
     changeLanguage(lang);
     setLangModalVisible(false);
-    showToast(`Idioma alterado para ${LANGUAGES.find(l => l.code === lang)?.name}`);
+    showToast(`${t('settings.languageChanged') || 'Idioma alterado'}: ${LANGUAGES.find(l => l.code === lang)?.name}`);
   };
 
   const currentLang = LANGUAGES.find(l => l.code === language);
@@ -328,7 +365,7 @@ const SettingsScreen = () => {
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={{ paddingTop: 16 }}
       >
-        {/* ✅ PROFILE CARD ELABORADO */}
+        {/* PROFILE CARD */}
         <TouchableOpacity 
           style={[styles.profileCard, { backgroundColor: colors.primary }]}
           onPress={() => {
@@ -355,10 +392,10 @@ const SettingsScreen = () => {
 
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{userProfile.name}</Text>
-            <Text style={styles.profileEmail}>@{currentUser?.username || 'Convidado'}</Text>
+            <Text style={styles.profileEmail}>@{currentUser?.username || t('common.guest')}</Text>
             <View style={styles.editHint}>
               <Ionicons name="create-outline" size={12} color="rgba(255,255,255,0.7)" />
-              <Text style={styles.editHintText}>Toque para editar</Text>
+              <Text style={styles.editHintText}>{t('settings.tapToEdit')}</Text>
             </View>
           </View>
 
@@ -499,7 +536,7 @@ const SettingsScreen = () => {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* ✅ MODAL DE PERFIL */}
+      {/* MODAL DE PERFIL */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -510,7 +547,7 @@ const SettingsScreen = () => {
           <View style={[styles.modalContent, { backgroundColor: colors.bgCard }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-                <Ionicons name="person" size={20} color={colors.primary} />  Editar Perfil
+                <Ionicons name="person" size={20} color={colors.primary} />  {t('settings.editProfile')}
               </Text>
               <TouchableOpacity onPress={() => setProfileModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.textMuted} />
@@ -532,20 +569,20 @@ const SettingsScreen = () => {
                   onPress={handlePhotoOptions}
                 >
                   <Ionicons name="camera" size={16} color="#FFFFFF" />
-                  <Text style={styles.changePhotoText}>Alterar Foto</Text>
+                  <Text style={styles.changePhotoText}>{t('settings.changePhoto') || 'Alterar Foto'}</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Username da conta */}
               <View style={styles.formGroup}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Usuário da Conta</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>{t('settings.accountUser')}</Text>
                 <View style={[styles.input, { backgroundColor: colors.bgTertiary + '80' }]}>
                   <Text style={{ color: colors.textMuted, fontSize: 15, paddingVertical: 12 }}>
-                    @{currentUser?.username || 'Não vinculado'}
+                    @{currentUser?.username || t('settings.notLinked') || 'Não vinculado'}
                   </Text>
                 </View>
                 <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>
-                  {currentUser ? 'Vinculado ao grupo' : 'Faça login em Grupos para vincular'}
+                  {currentUser ? t('settings.linked') : t('settings.linkPrompt')}
                 </Text>
               </View>
 
@@ -553,7 +590,7 @@ const SettingsScreen = () => {
               <View style={styles.formGroup}>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.bgTertiary, color: colors.textPrimary }]}
-                  placeholder="Seu nome de exibição"
+                  placeholder={t('settings.displayName')}
                   placeholderTextColor={colors.textMuted}
                   value={editName}
                   onChangeText={setEditName}
@@ -566,7 +603,7 @@ const SettingsScreen = () => {
                 onPress={handleSaveName}
               >
                 <Ionicons name="save" size={18} color="#FFFFFF" />
-                <Text style={styles.submitText}>Salvar Perfil</Text>
+                <Text style={styles.submitText}>{t('settings.saveProfile')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -632,19 +669,19 @@ const SettingsScreen = () => {
           <View style={[styles.modalContent, { backgroundColor: colors.bgCard }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-                <Ionicons name="add-circle" size={20} color="#10B981" />  {t('settings.addCategory')}
+                <Ionicons name="add-circle" size={20} color={colors.primary} />  {t('settings.addCategory')}
               </Text>
               <TouchableOpacity onPress={() => setCatModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <View style={styles.modalBody}>
               <View style={styles.formGroup}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>{t('settings.categoryName')}</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.bgTertiary, color: colors.textPrimary }]}
-                  placeholder="Ex: Viagem"
+                  placeholder={t('settings.enterCategoryName')}
                   placeholderTextColor={colors.textMuted}
                   value={newCatName}
                   onChangeText={setNewCatName}
@@ -653,27 +690,27 @@ const SettingsScreen = () => {
 
               <View style={styles.formGroup}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>{t('settings.categoryIcon')}</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.iconScroll}>
-                  {iconOptions.map(icon => (
+                <View style={styles.iconGrid}>
+                  {iconOptions.map((icon) => (
                     <TouchableOpacity
                       key={icon}
                       style={[
-                        styles.iconChip,
-                        { backgroundColor: newCatIcon === icon ? newCatColor + '20' : colors.bgTertiary },
-                        newCatIcon === icon && { borderColor: newCatColor }
+                        styles.iconOption,
+                        { backgroundColor: newCatIcon === icon ? colors.primary + '20' : colors.bgTertiary },
+                        newCatIcon === icon && { borderColor: colors.primary }
                       ]}
                       onPress={() => setNewCatIcon(icon)}
                     >
-                      <Ionicons name={icon} size={20} color={newCatIcon === icon ? newCatColor : colors.textMuted} />
+                      <Ionicons name={icon} size={24} color={newCatIcon === icon ? colors.primary : colors.textMuted} />
                     </TouchableOpacity>
                   ))}
-                </ScrollView>
+                </View>
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>{t('settings.categoryColor')}</Text>
                 <View style={styles.colorGrid}>
-                  {colorOptions.map(color => (
+                  {colorOptions.map((color) => (
                     <TouchableOpacity
                       key={color}
                       style={[
@@ -682,19 +719,20 @@ const SettingsScreen = () => {
                         newCatColor === color && styles.colorSelected
                       ]}
                       onPress={() => setNewCatColor(color)}
-                    />
+                    >
+                    </TouchableOpacity>
                   ))}
                 </View>
               </View>
 
               <TouchableOpacity
-                style={[styles.submitBtn, { backgroundColor: '#10B981' }]}
+                style={[styles.submitBtn, { backgroundColor: colors.primary }]}
                 onPress={handleAddCategory}
               >
                 <Ionicons name="save" size={18} color="#FFFFFF" />
                 <Text style={styles.submitText}>{t('settings.saveCategory')}</Text>
               </TouchableOpacity>
-            </ScrollView>
+            </View>
           </View>
         </View>
       </Modal>
@@ -718,137 +756,159 @@ const styles = StyleSheet.create({
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 20, fontWeight: '700', flex: 1, textAlign: 'center' },
   content: { flex: 1, paddingHorizontal: 16 },
-  
-  // ✅ PROFILE CARD ELABORADO
+
   profileCard: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     padding: 20, 
     borderRadius: 20, 
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
+    marginBottom: 20 
   },
-  profileAvatarContainer: {
-    position: 'relative',
-    marginRight: 16,
-  },
+  profileAvatarContainer: { position: 'relative', marginRight: 16 },
   profileAvatar: { 
-    width: 64, 
-    height: 64, 
-    borderRadius: 32, 
+    width: 56, 
+    height: 56, 
+    borderRadius: 28, 
     backgroundColor: 'rgba(255,255,255,0.2)', 
     justifyContent: 'center', 
-    alignItems: 'center',
+    alignItems: 'center' 
   },
-  profileAvatarImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-  },
-  cameraBtn: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+  profileAvatarImage: { width: 56, height: 56, borderRadius: 28 },
+  cameraBtn: { 
+    position: 'absolute', 
+    bottom: -4, 
+    right: -4, 
+    width: 24, 
+    height: 24, 
+    borderRadius: 12, 
+    backgroundColor: 'rgba(0,0,0,0.5)', 
+    justifyContent: 'center', 
+    alignItems: 'center' 
   },
   profileInfo: { flex: 1 },
-  profileName: { fontSize: 20, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
-  profileEmail: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginBottom: 6 },
-  editHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  editHintText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  
-  section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, paddingLeft: 4 },
+  profileName: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+  profileEmail: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 2 },
+  editHint: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  editHintText: { color: 'rgba(255,255,255,0.6)', fontSize: 11 },
+
+  section: { marginBottom: 20 },
+  sectionTitle: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, marginLeft: 4 },
   sectionCard: { borderRadius: 16, overflow: 'hidden' },
+
   row: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
-    padding: 16,
+    padding: 16 
   },
-  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rowIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  rowLabel: { fontSize: 15, fontWeight: '500' },
-  rowValue: { fontSize: 14, fontWeight: '600' },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  rowIcon: { 
+    width: 36, 
+    height: 36, 
+    borderRadius: 10, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginRight: 12 
+  },
+  rowLabel: { fontSize: 15, fontWeight: '600' },
+  rowValue: { fontSize: 14, marginRight: 4 },
+
   divider: { height: 1, marginLeft: 64 },
-  
-  // ✅ MODAL DE PERFIL
-  avatarPreviewContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
+
+  modalOverlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.5)', 
+    justifyContent: 'flex-end' 
   },
-  avatarPreview: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+  modalContent: { 
+    borderTopLeftRadius: 24, 
+    borderTopRightRadius: 24, 
+    padding: 24, 
+    paddingBottom: 40, 
+    maxHeight: '90%' 
   },
-  changePhotoBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+  modalHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: 20 
   },
-  changePhotoText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+  modalTitle: { fontSize: 18, fontWeight: '700' },
+  modalBody: { maxHeight: 400 },
+
+  avatarPreviewContainer: { alignItems: 'center', marginBottom: 20 },
+  avatarPreview: { 
+    width: 80, 
+    height: 80, 
+    borderRadius: 40, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
   },
-  
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  modalTitle: { fontSize: 18, fontWeight: '600' },
-  modalBody: { padding: 20 },
-  formGroup: { marginBottom: 20 },
+  changePhotoBtn: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 6, 
+    paddingHorizontal: 14, 
+    paddingVertical: 8, 
+    borderRadius: 20, 
+    marginTop: 10 
+  },
+  changePhotoText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+
+  formGroup: { marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  input: { padding: 12, borderRadius: 12, fontSize: 15, borderWidth: 2, borderColor: 'transparent' },
-  iconScroll: { paddingVertical: 4, gap: 8 },
-  iconChip: { 
+  input: { padding: 14, borderRadius: 12, fontSize: 16 },
+
+  iconGrid: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    gap: 8, 
+    justifyContent: 'center' 
+  },
+  iconOption: { 
     width: 48, 
     height: 48, 
     borderRadius: 12, 
-    borderWidth: 2, 
-    borderColor: 'transparent',
     justifyContent: 'center', 
     alignItems: 'center', 
-    marginRight: 8 
+    borderWidth: 2, 
+    borderColor: 'transparent' 
   },
-  colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
-  colorCircle: { width: 40, height: 40, borderRadius: 20 },
-  colorSelected: { borderWidth: 3, borderColor: '#1E293B', transform: [{ scale: 1.1 }] },
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16, borderRadius: 12, marginTop: 8 },
-  submitText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-  langOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
+
+  colorGrid: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    gap: 10, 
+    justifyContent: 'center' 
+  },
+  colorCircle: { 
+    width: 36, 
+    height: 36, 
+    borderRadius: 18, 
+    borderWidth: 2, 
+    borderColor: 'transparent' 
+  },
+  colorSelected: { borderColor: '#FFFFFF', borderWidth: 3 },
+
+  submitBtn: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: 8, 
+    padding: 16, 
+    borderRadius: 14, 
+    marginTop: 8 
+  },
+  submitText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+
+  langOption: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    padding: 14, 
+    borderRadius: 12, 
+    marginBottom: 8, 
+    borderWidth: 2, 
+    borderColor: 'transparent' 
   },
 });
 

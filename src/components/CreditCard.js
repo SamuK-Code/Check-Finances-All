@@ -7,7 +7,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 40; 
 const CARD_HEIGHT = 185;
 
-const CreditCard = ({ card, used = 0, compact = false }) => {
+const CreditCard = ({ card, used = 0, compact = false, pendingInvoices = 0 }) => {
   const colors = getCardGradientColors(card.gradientClass || 'card-gradient-purple');
   const isTemplate = isCardTemplate(card.gradientClass);
   const isSolid = isCardSolid(card.gradientClass);
@@ -91,6 +91,12 @@ const CreditCard = ({ card, used = 0, compact = false }) => {
           <CardContent />
         </LinearGradient>
       )}
+      {/* NOVO: Badge de fatura pendente */}
+      {pendingInvoices > 0 && (
+        <View style={styles.pendingBadge}>
+          <Text style={styles.pendingBadgeText}>{pendingInvoices} FATURA PENDENTE</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -113,7 +119,7 @@ const styles = StyleSheet.create({
   },
   imageOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)', // Overlay escuro para legibilidade
+    backgroundColor: 'rgba(0,0,0,0.35)',
     borderRadius: 16,
   },
   gradient: {
@@ -177,6 +183,22 @@ const styles = StyleSheet.create({
   footerValue: {
     fontSize: 15,
     fontWeight: '700',
+  },
+  // NOVO: Badge de fatura pendente
+  pendingBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  pendingBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });
 

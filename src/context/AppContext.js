@@ -9,6 +9,7 @@ export const AppProvider = ({ children }) => {
   const [cards, setCards] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [goals, setGoals] = useState([]);
+  const [completedGoals, setCompletedGoals] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [customCategories, setCustomCategories] = useState([]);
   const [cashBalance, setCashBalance] = useState(0);
@@ -20,20 +21,24 @@ export const AppProvider = ({ children }) => {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  // Refs para acessar estado atual dentro de callbacks sem stale closure
+  const [cardInvoices, setCardInvoices] = useState([]);
+
   const transactionsRef = useRef(transactions);
   const cardsRef = useRef(cards);
   const goalsRef = useRef(goals);
+  const completedGoalsRef = useRef(completedGoals);
   const soundEnabledRef = useRef(soundEnabled);
   const cashBalanceRef = useRef(cashBalance);
+  const cardInvoicesRef = useRef(cardInvoices);
 
   useEffect(() => { transactionsRef.current = transactions; }, [transactions]);
   useEffect(() => { cardsRef.current = cards; }, [cards]);
   useEffect(() => { goalsRef.current = goals; }, [goals]);
+  useEffect(() => { completedGoalsRef.current = completedGoals; }, [completedGoals]);
   useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
   useEffect(() => { cashBalanceRef.current = cashBalance; }, [cashBalance]);
+  useEffect(() => { cardInvoicesRef.current = cardInvoices; }, [cardInvoices]);
 
-  // Audio players para SDK 56 (expo-audio)
   const addPlayer = useAudioPlayer(require('../../assets/sounds/add.mp3'));
   const deletePlayer = useAudioPlayer(require('../../assets/sounds/delete.mp3'));
   const notifPlayer = useAudioPlayer(require('../../assets/sounds/notif.mp3'));
@@ -51,7 +56,6 @@ export const AppProvider = ({ children }) => {
   ];
 
   const cardGradients = [
-    // ═══════ GRADIENTES (15) ═══════
     { name: 'Roxo Real', class: 'card-gradient-purple', color: '#8B5CF6', type: 'gradient' },
     { name: 'Azul Oceano', class: 'card-gradient-blue', color: '#3B82F6', type: 'gradient' },
     { name: 'Verde Floresta', class: 'card-gradient-green', color: '#10B981', type: 'gradient' },
@@ -67,15 +71,11 @@ export const AppProvider = ({ children }) => {
     { name: 'Midnight', class: 'card-gradient-midnight', color: '#4338CA', type: 'gradient' },
     { name: 'Aurora', class: 'card-gradient-aurora', color: '#0EA5E9', type: 'gradient' },
     { name: 'Fogo', class: 'card-gradient-fire', color: '#EA580C', type: 'gradient' },
-
-    // ═══════ CORES SÓLIDAS (3) ═══════
     { name: 'Preto Fosco', class: 'card-solid-black', color: '#1C1917', type: 'solid' },
     { name: 'Branco Pérola', class: 'card-solid-white', color: '#F5F5F4', type: 'solid' },
     { name: 'Dourado', class: 'card-solid-gold', color: '#D4AF37', type: 'solid' },
-
-    // ═══════ TEMPLATES COM IMAGEM (6) ═══════
     { name: 'Premium Dark', class: 'card-template-dark', color: '#1E1B4B', type: 'template' },
-	{ name: 'Premium Color', class: 'card-template-color', color: '#D4AF37', type: 'template' },
+    { name: 'Premium Color', class: 'card-template-color', color: '#D4AF37', type: 'template' },
     { name: 'Gold Metal', class: 'card-template-gold', color: '#D4AF37', type: 'template' },
     { name: 'Holográfico', class: 'card-template-holo', color: '#C084FC', type: 'template' },
     { name: 'Carbon Fiber', class: 'card-template-carbon', color: '#374151', type: 'template' },
@@ -97,9 +97,11 @@ export const AppProvider = ({ children }) => {
         setCards(data.cards || []);
         setTransactions(data.transactions || []);
         setGoals(data.goals || []);
+        setCompletedGoals(data.completedGoals || []);
         setCustomCategories(data.customCategories || []);
         setCashBalance(data.cashBalance || 0);
         setSoundEnabled(data.soundEnabled || { add: true, delete: true, notif: true, achievement: true });
+        setCardInvoices(data.cardInvoices || []);
       }
     } catch (e) {
       console.warn('Erro ao carregar:', e);
@@ -114,11 +116,11 @@ export const AppProvider = ({ children }) => {
         cards: cardsRef.current,
         transactions: transactionsRef.current,
         goals: goalsRef.current,
+        completedGoals: completedGoalsRef.current,
         customCategories,
-    cashBalance,
-    setCashBalance,
         cashBalance: cashBalanceRef.current,
         soundEnabled: soundEnabledRef.current,
+        cardInvoices: cardInvoicesRef.current,
       }));
     } catch (e) {
       console.warn('Erro ao salvar:', e);
@@ -127,27 +129,17 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     if (!isLoading) saveData();
-  }, [cards, transactions, goals, customCategories, soundEnabled, cashBalance, isLoading, saveData]);
+  }, [cards, transactions, goals, completedGoals, customCategories, soundEnabled, cashBalance, cardInvoices, isLoading, saveData]);
 
   const playSound = useCallback((type) => {
     if (!soundEnabledRef.current[type]) return;
-
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
     try {
       switch (type) {
-        case 'add':
-          addPlayer.play();
-          break;
-        case 'delete':
-          deletePlayer.play();
-          break;
-        case 'notif':
-          notifPlayer.play();
-          break;
-        case 'achievement':
-          achievementPlayer.play();
-          break;
+        case 'add': addPlayer.play(); break;
+        case 'delete': deletePlayer.play(); break;
+        case 'notif': notifPlayer.play(); break;
+        case 'achievement': achievementPlayer.play(); break;
       }
     } catch (e) {
       console.warn('Erro ao tocar som:', e);
@@ -172,6 +164,136 @@ export const AppProvider = ({ children }) => {
     playSound('delete');
   }, [playSound]);
 
+  const createInvoice = useCallback((cardId, month, year, totalAmount, transactions) => {
+    const card = cardsRef.current.find(c => c.id === cardId);
+    if (!card) return null;
+
+    const invoice = {
+      id: `inv_${Date.now()}_${cardId}`,
+      cardId,
+      cardName: card.name,
+      month,
+      year,
+      totalAmount,
+      transactions: transactions.map(t => t.id),
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      paidAt: null,
+      dueDate: card.dueDate || null,
+    };
+
+    setCardInvoices(prev => [...prev, invoice]);
+    return invoice;
+  }, []);
+
+  const payInvoice = useCallback((invoiceId) => {
+    const invoice = cardInvoicesRef.current.find(inv => inv.id === invoiceId);
+    if (!invoice || invoice.status === 'paid') return false;
+
+    if (cashBalanceRef.current < invoice.totalAmount) {
+      addNotification(
+        'Saldo Insuficiente',
+        `Você precisa de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(invoice.totalAmount)} para quitar a fatura do ${invoice.cardName}`,
+        'warning'
+      );
+      return false;
+    }
+
+    setCashBalance(prev => prev - invoice.totalAmount);
+
+    setCardInvoices(prev => prev.map(inv => 
+      inv.id === invoiceId 
+        ? { ...inv, status: 'paid', paidAt: new Date().toISOString() }
+        : inv
+    ));
+
+    const paymentTransaction = {
+      type: 'expense',
+      desc: `Pagamento Fatura ${invoice.cardName} - ${String(invoice.month).padStart(2, '0')}/${invoice.year}`,
+      amount: invoice.totalAmount,
+      date: new Date().toISOString().split('T')[0],
+      category: 'bills',
+      categoryName: 'Contas',
+      categoryIcon: 'document-text',
+      categoryColor: '#6366F1',
+      paymentMethod: 'cash',
+      cardId: null,
+      isInvoicePayment: true,
+      invoiceId: invoice.id,
+    };
+
+    setTransactions(prev => [...prev, { ...paymentTransaction, id: Date.now(), createdAt: new Date().toISOString() }]);
+
+    addNotification(
+      '💳 Fatura Quitada',
+      `Fatura do ${invoice.cardName} quitada no valor de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(invoice.totalAmount)}`,
+      'success'
+    );
+    playSound('achievement');
+    return true;
+  }, [addNotification, playSound]);
+
+  const checkCardClosings = useCallback(() => {
+    const today = new Date();
+    const currentDay = today.getDate();
+    const currentMonth = today.getMonth() + 1;
+    const currentYear = today.getFullYear();
+
+    cardsRef.current.forEach(card => {
+      if (!card.closeDate) return;
+
+      const closingDay = parseInt(card.closeDate);
+
+      if (currentDay === closingDay) {
+        const existingInvoice = cardInvoicesRef.current.find(inv => 
+          inv.cardId === card.id && 
+          inv.month === currentMonth && 
+          inv.year === currentYear
+        );
+
+        if (!existingInvoice) {
+          const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+          const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+          const lastMonthStr = `${lastMonthYear}-${String(lastMonth).padStart(2, '0')}`;
+
+          const invoiceTransactions = transactionsRef.current.filter(t => 
+            t.cardId === card.id && 
+            t.type === 'expense' &&
+            t.date.startsWith(lastMonthStr) &&
+            !t.isInvoicePayment
+          );
+
+          const totalAmount = invoiceTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+          if (totalAmount > 0) {
+            createInvoice(card.id, currentMonth, currentYear, totalAmount, invoiceTransactions);
+
+            addNotification(
+              '📋 Nova Fatura Gerada',
+              `Fatura do ${card.name} - ${String(currentMonth).padStart(2, '0')}/${currentYear}: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAmount)}`,
+              'info'
+            );
+            playSound('notif');
+          }
+        }
+      }
+    });
+  }, [createInvoice, addNotification, playSound]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      checkCardClosings();
+    }
+  }, [isLoading, checkCardClosings]);
+
+  useEffect(() => {
+    if (isLoading) return;
+    const interval = setInterval(() => {
+      checkCardClosings();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [isLoading, checkCardClosings]);
+
   const addCard = useCallback((card) => {
     setCards(prev => [...prev, { ...card, id: Date.now(), createdAt: new Date().toISOString() }]);
     playSound('add');
@@ -179,13 +301,14 @@ export const AppProvider = ({ children }) => {
 
   const deleteCard = useCallback((id) => {
     setCards(prev => prev.filter(c => c.id !== id));
+    setCardInvoices(prev => prev.filter(inv => inv.cardId !== id));
     playSound('delete');
   }, [playSound]);
+
   const editCard = useCallback((id, updates) => {
     setCards(prev => prev.map(c => c.id === id ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c));
     playSound('add');
   }, [playSound]);
-
 
   const addTransaction = useCallback((transaction) => {
     const newTransaction = {
@@ -196,23 +319,100 @@ export const AppProvider = ({ children }) => {
     setTransactions(prev => [...prev, newTransaction]);
 
     if (transaction.type === 'income') {
-      setGoals(prev => prev.map(g => ({
-        ...g,
-        current: Math.min(g.current + transaction.amount, g.target),
-      })));
+      setCashBalance(prev => prev + transaction.amount);
+    } else if (transaction.type === 'expense' || transaction.type === 'boleto') {
+      setCashBalance(prev => prev - transaction.amount);
     }
 
     playSound('add');
   }, [playSound]);
 
   const deleteTransaction = useCallback((id) => {
+    const transaction = transactionsRef.current.find(t => t.id === id);
+    if (transaction) {
+      if (transaction.type === 'income') {
+        setCashBalance(prev => prev - transaction.amount);
+      } else if (transaction.type === 'expense' || transaction.type === 'boleto') {
+        setCashBalance(prev => prev + transaction.amount);
+      }
+    }
     setTransactions(prev => prev.filter(t => t.id !== id));
     playSound('delete');
   }, [playSound]);
 
   const addGoal = useCallback((goal) => {
-    setGoals(prev => [...prev, { ...goal, id: Date.now(), createdAt: new Date().toISOString(), completed: false }]);
+    const newGoal = {
+      ...goal,
+      id: Date.now().toString(),
+      name: goal.name,
+      target: parseFloat(goal.target),
+      current: 0,
+      deadline: goal.deadline || null,
+      icon: goal.icon || 'flag',
+      color: goal.color || '#6366F1',
+      createdAt: new Date().toISOString(),
+      completed: false,
+    };
+    setGoals(prev => [...prev, newGoal]);
     playSound('add');
+  }, [playSound]);
+
+  const investInGoal = useCallback((goalId, amount, type = 'deposit') => {
+    const value = parseFloat(amount);
+    if (isNaN(value) || value <= 0) return false;
+
+    const goal = goalsRef.current.find(g => g.id === goalId);
+    if (!goal) return false;
+
+    if (type === 'deposit') {
+      if (value > cashBalanceRef.current) {
+        console.warn('Saldo insuficiente:', cashBalanceRef.current, 'necessário:', value);
+        return false;
+      }
+      setCashBalance(prev => prev - value);
+      setGoals(prev => prev.map(g => {
+        if (g.id !== goalId) return g;
+        const newCurrent = Math.min(g.current + value, g.target);
+        return { ...g, current: newCurrent };
+      }));
+    } else {
+      if (value > goal.current) return false;
+      setCashBalance(prev => prev + value);
+      setGoals(prev => prev.map(g => {
+        if (g.id !== goalId) return g;
+        return { ...g, current: Math.max(g.current - value, 0) };
+      }));
+    }
+
+    playSound('add');
+    return true;
+  }, [playSound]);
+
+  const completeGoal = useCallback((goalId) => {
+    const goal = goalsRef.current.find(g => g.id === goalId);
+    if (!goal || goal.current < goal.target) return false;
+
+    const completedGoal = {
+      ...goal,
+      completedAt: new Date().toISOString(),
+    };
+
+    setCompletedGoals(prev => [...prev, completedGoal]);
+    setGoals(prev => prev.filter(g => g.id !== goalId));
+
+    addNotification(
+      '🎉 Meta Concluída!',
+      `Parabéns! Você completou "${goal.name}"`,
+      'success'
+    );
+    playSound('achievement');
+    return true;
+  }, [addNotification, playSound]);
+
+  const deleteGoal = useCallback((goalId) => {
+    setGoals(prev => prev.filter(g => g.id !== goalId));
+    setCompletedGoals(prev => prev.filter(g => g.id !== goalId));
+    playSound('delete');
   }, [playSound]);
 
   const contributeGoal = useCallback((goalId, amount) => {
@@ -231,7 +431,6 @@ export const AppProvider = ({ children }) => {
     playSound('add');
   }, [addNotification, playSound]);
 
-  // ✅ CORREÇÃO: checkBudgetAlert usando refs para acessar estado atual
   const checkBudgetAlert = useCallback(() => {
     const currentTransactions = transactionsRef.current;
     const month = new Date().toISOString().slice(0, 7);
@@ -251,7 +450,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [addNotification]);
 
-  // ✅ CORREÇÃO: checkGoalsProgress usando refs
   const checkGoalsProgress = useCallback(() => {
     const currentGoals = goalsRef.current;
     currentGoals.forEach(goal => {
@@ -274,7 +472,6 @@ export const AppProvider = ({ children }) => {
     });
   }, [addNotification, playSound]);
 
-  // ✅ CORREÇÃO: checkCardDueDates usando refs
   const checkCardDueDates = useCallback(() => {
     const currentCards = cardsRef.current;
     const today = new Date();
@@ -292,14 +489,13 @@ export const AppProvider = ({ children }) => {
     });
   }, [addNotification]);
 
-  // ✅ CORREÇÃO: checkCardLimitAlert usando refs
   const checkCardLimitAlert = useCallback(() => {
     const currentCards = cardsRef.current;
     const currentTransactions = transactionsRef.current;
 
     currentCards.forEach(card => {
       const used = currentTransactions
-        .filter(t => t.cardId === card.id && t.type === 'expense')
+        .filter(t => t.cardId === card.id && t.type === 'expense' && !t.isInvoicePayment)
         .reduce((s, t) => s + t.amount, 0);
       const percentage = (used / card.limit) * 100;
 
@@ -319,7 +515,6 @@ export const AppProvider = ({ children }) => {
     });
   }, [addNotification]);
 
-  // ✅ NOVO: useEffect para rodar verificações quando dados mudam
   useEffect(() => {
     if (isLoading) return;
     checkBudgetAlert();
@@ -328,26 +523,60 @@ export const AppProvider = ({ children }) => {
     checkCardLimitAlert();
   }, [transactions, cards, goals, isLoading, checkBudgetAlert, checkGoalsProgress, checkCardDueDates, checkCardLimitAlert]);
 
+  // ═══════════════════════════════════════════════════════════
+  // 📤📥 IMPORTAR / EXPORTAR — CORRIGIDO
+  // ═══════════════════════════════════════════════════════════
+
   const exportData = useCallback(async () => {
-    const data = { 
-      cards: cardsRef.current, 
-      transactions: transactionsRef.current, 
-      goals: goalsRef.current, 
-      exportDate: new Date().toISOString() 
+    const data = {
+      version: '3.0',
+      exportDate: new Date().toISOString(),
+      cards: cardsRef.current,
+      transactions: transactionsRef.current,
+      goals: goalsRef.current,
+      completedGoals: completedGoalsRef.current,
+      customCategories,
+      cardInvoices: cardInvoicesRef.current,
+      cashBalance: cashBalanceRef.current,
+      soundEnabled: soundEnabledRef.current,
     };
     return JSON.stringify(data, null, 2);
-  }, []);
+  }, [customCategories]);
 
   const importData = useCallback(async (jsonData) => {
     try {
       const data = JSON.parse(jsonData);
+      
+      if (!data || typeof data !== 'object') {
+        console.warn('Import: dados inválidos');
+        return false;
+      }
+
       if (data.cards) setCards(data.cards);
       if (data.transactions) setTransactions(data.transactions);
       if (data.goals) setGoals(data.goals);
+      if (data.completedGoals) setCompletedGoals(data.completedGoals);
       if (data.customCategories) setCustomCategories(data.customCategories);
+      if (data.cardInvoices) setCardInvoices(data.cardInvoices);
+      
+      if (typeof data.cashBalance === 'number') {
+        setCashBalance(data.cashBalance);
+      } else {
+        const income = (data.transactions || [])
+          .filter(t => t.type === 'income')
+          .reduce((s, t) => s + t.amount, 0);
+        const expense = (data.transactions || [])
+          .filter(t => t.type === 'expense' || t.type === 'boleto')
+          .reduce((s, t) => s + t.amount, 0);
+        setCashBalance(income - expense);
+      }
+
+      if (data.soundEnabled) setSoundEnabled(data.soundEnabled);
+
       playSound('add');
       return true;
     } catch (err) {
+      console.warn('Erro ao importar dados:', err);
       return false;
     }
   }, [playSound]);
@@ -360,9 +589,11 @@ export const AppProvider = ({ children }) => {
     setCards([]);
     setTransactions([]);
     setGoals([]);
+    setCompletedGoals([]);
     setNotifications([]);
     setCustomCategories([]);
     setCashBalance(0);
+    setCardInvoices([]);
     playSound('delete');
   }, [playSound]);
 
@@ -370,16 +601,27 @@ export const AppProvider = ({ children }) => {
     const currentTransactions = transactionsRef.current;
     const income = currentTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const expense = currentTransactions.filter(t => t.type === 'expense' || t.type === 'boleto').reduce((s, t) => s + t.amount, 0);
-    return { income, expense, balance: income - expense + cashBalanceRef.current };
+    return { income, expense, balance: cashBalanceRef.current };
   }, []);
 
   const getCardUsage = useCallback((cardId) => {
     return transactionsRef.current
-      .filter(t => t.cardId === cardId && t.type === 'expense')
+      .filter(t => t.cardId === cardId && t.type === 'expense' && !t.isInvoicePayment)
       .reduce((s, t) => s + t.amount, 0);
   }, []);
 
-  // Combina categorias padrão + customizadas
+  const getCardPendingInvoices = useCallback((cardId) => {
+    return cardInvoicesRef.current
+      .filter(inv => inv.cardId === cardId && inv.status === 'pending')
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }, []);
+
+  const getCardInvoices = useCallback((cardId) => {
+    return cardInvoicesRef.current
+      .filter(inv => inv.cardId === cardId)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }, []);
+
   const mergedCategories = [...categories, ...customCategories];
 
   const addCustomCategory = useCallback((category) => {
@@ -393,36 +635,53 @@ export const AppProvider = ({ children }) => {
     cards,
     transactions,
     goals,
+    completedGoals,
     notifications,
     categories: mergedCategories,
     customCategories,
     cashBalance,
     setCashBalance,
     addCustomCategory,
+    setCustomCategories,
     cardGradients,
     tags,
     soundEnabled,
     setSoundEnabled,
+    isLoading,
+
+    cardInvoices,
+    createInvoice,
+    payInvoice,
+    getCardPendingInvoices,
+    getCardInvoices,
+    checkCardClosings,
+
     addCard,
     deleteCard,
     editCard,
+
     addTransaction,
     deleteTransaction,
+
     addGoal,
+    investInGoal,
+    completeGoal,
+    deleteGoal,
     contributeGoal,
+
     addNotification,
     checkGoalsProgress,
     checkCardDueDates,
     checkCardLimitAlert,
     markNotificationAsRead,
     clearAllNotifications,
+
     exportData,
     importData,
     clearAllData,
     getBalance,
     getCardUsage,
     playSound,
-    isLoading,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

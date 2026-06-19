@@ -1,14 +1,18 @@
+// AddScreen.js — COM INDICADOR DE PRÓXIMA FATURA
+
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
-import { formatCurrency } from '../utils/helpers';
+import { useTranslate } from '../hooks/useTranslate';
+import { formatCurrency, isAfterClosingDate, getInvoiceMonth, formatInvoiceMonth } from '../utils/helpers';
 import Toast from '../components/Toast';
 
 const AddScreen = () => {
   const { categories, cards, transactions, addTransaction, getCardUsage } = useApp();
   const { colors } = useTheme();
+  const { t } = useTranslate();
   const [modalVisible, setModalVisible] = useState(false);
   const [transactionType, setTransactionType] = useState('expense');
   const [desc, setDesc] = useState('');
@@ -23,18 +27,15 @@ const AddScreen = () => {
   const [fabOpen, setFabOpen] = useState(false);
 
   const typeConfig = {
-    expense: { title: 'Nova Despesa', color: '#EF4444', icon: 'remove-circle' },
-    income: { title: 'Nova Receita', color: '#10B981', icon: 'add-circle' },
-    boleto: { title: 'Novo Boleto', color: '#F59E0B', icon: 'barcode' },
+    expense: { title: t('add.newExpense'), color: '#EF4444', icon: 'remove-circle' },
+    income: { title: t('add.newIncome'), color: '#10B981', icon: 'add-circle' },
+    boleto: { title: t('add.newBoleto'), color: '#F59E0B', icon: 'barcode' },
   };
 
   // Calcular cartões mais utilizados (top 3 por valor gasto)
   const topCards = useMemo(() => {
     return cards
-      .map(card => ({
-        ...card,
-        used: getCardUsage(card.id),
-      }))
+      .map(card => ({ ...card, used: getCardUsage(card.id) }))
       .filter(card => card.used > 0)
       .sort((a, b) => b.used - a.used)
       .slice(0, 3);
@@ -46,7 +47,7 @@ const AddScreen = () => {
     transactions
       .filter(t => t.type === 'expense')
       .forEach(t => {
-        const key = t.categoryName || 'Outros';
+        const key = t.categoryName || t('categories.other');
         catTotals[key] = (catTotals[key] || { amount: 0, icon: t.categoryIcon || 'pricetag', color: t.categoryColor || '#94A3B8' });
         catTotals[key].amount += t.amount;
       });
@@ -55,7 +56,27 @@ const AddScreen = () => {
       .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 5);
-  }, [transactions]);
+  }, [transactions, t]);
+
+  // NOVO: Verificar se a compra no cartão vai para a próxima fatura
+  const getInvoiceWarning = () => {
+    if (transactionType !== 'expense' || paymentMethod !== 'card' || !cardId) return null;
+
+    const selectedCard = cards.find(c => c.id.toString() === cardId.toString());
+    if (!selectedCard || !selectedCard.closeDate) return null;
+
+    const isNextInvoice = isAfterClosingDate(date, selectedCard.closeDate);
+    if (isNextInvoice) {
+      const invoiceMonth = getInvoiceMonth(date, selectedCard.closeDate);
+      return {
+        message: `Esta compra irá para a fatura de ${formatInvoiceMonth(invoiceMonth)}`,
+        color: colors.warning,
+      };
+    }
+    return null;
+  };
+
+  const invoiceWarning = getInvoiceWarning();
 
   const showToast = (message, type = 'success') => {
     setToast({ visible: true, message, type });
@@ -76,11 +97,12 @@ const AddScreen = () => {
 
   const handleSubmit = () => {
     if (!desc || !amount || !categoryId) {
-      showToast('Preencha todos os campos obrigatórios', 'error');
+      showToast(t('add.fillRequired'), 'error');
       return;
     }
 
     const category = categories.find(c => c.id === categoryId);
+    const selectedCard = cards.find(c => c.id.toString() === cardId?.toString());
 
     const transaction = {
       type: transactionType,
@@ -88,27 +110,47 @@ const AddScreen = () => {
       amount: parseFloat(amount),
       date,
       category: categoryId,
-      categoryName: category ? category.name : 'Customizado',
+      categoryName: category ? category.name : t('categories.other'),
       categoryIcon: category ? category.icon : 'pricetag',
       categoryColor: category ? category.color : '#94A3B8',
       paymentMethod,
       cardId: paymentMethod === 'card' ? parseInt(cardId, 10) : null,
       cardType: paymentMethod === 'card' ? cardType : null,
       boletoDue: transactionType === 'boleto' ? boletoDue : null,
+      // NOVO: Flag para identificar se vai para próxima fatura
+      isNextInvoice: selectedCard ? isAfterClosingDate(date, selectedCard.closeDate) : false,
+      invoiceMonth: selectedCard ? getInvoiceMonth(date, selectedCard.closeDate) : null,
     };
 
     addTransaction(transaction);
     setModalVisible(false);
     setFabOpen(false);
-    showToast(`${typeConfig[transactionType].title} registrada!`, 'success');
+    showToast(`${typeConfig[transactionType].title} ${t('add.success')}`, 'success');
   };
+
+  const paymentMethods = transactionType === 'income'
+    ? [
+        { key: 'pix', label: t('add.pix'), icon: 'qr-code' },
+        { key: 'cash', label: t('add.cash'), icon: 'cash' },
+      ]
+    : [
+        { key: 'card', label: t('add.card'), icon: 'card' },
+        { key: 'pix', label: t('add.pix'), icon: 'qr-code' },
+        { key: 'boleto', label: t('add.boleto'), icon: 'barcode' },
+        { key: 'cash', label: t('add.cash'), icon: 'cash' },
+      ];
+
+  const cardTypes = [
+    { key: 'credit', label: t('add.credit'), icon: 'card' },
+    { key: 'debit', label: t('add.debit'), icon: 'card' },
+  ];
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-          <Ionicons name="add-circle" size={20} color={colors.primary} />  Adicionar
+          <Ionicons name="add-circle" size={20} color={colors.primary} />  {t('add.title')}
         </Text>
       </View>
 
@@ -117,7 +159,7 @@ const AddScreen = () => {
         {topCards.length > 0 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
-              <Ionicons name="card" size={14} color={colors.primary} />  Cartões Mais Usados
+              <Ionicons name="card" size={14} color={colors.primary} />  {t('add.topCards')}
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardScroll}>
               {topCards.map(card => (
@@ -126,7 +168,7 @@ const AddScreen = () => {
                   <Text style={[styles.topCardName, { color: colors.textPrimary }]} numberOfLines={1}>{card.name}</Text>
                   <Text style={[styles.topCardNumber, { color: colors.textMuted }]}>{card.number}</Text>
                   <Text style={[styles.topCardValue, { color: colors.danger }]}>{formatCurrency(card.used)}</Text>
-                  <Text style={[styles.topCardLabel, { color: colors.textMuted }]}>utilizado</Text>
+                  <Text style={[styles.topCardLabel, { color: colors.textMuted }]}>{t('cards.used')}</Text>
                 </View>
               ))}
             </ScrollView>
@@ -137,7 +179,7 @@ const AddScreen = () => {
         {topCategories.length > 0 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
-              <Ionicons name="pie-chart" size={14} color={colors.primary} />  Categorias Top
+              <Ionicons name="pie-chart" size={14} color={colors.primary} />  {t('add.topCategories')}
             </Text>
             <View style={[styles.categoryList, { backgroundColor: colors.bgCard }]}>
               {topCategories.map((cat, index) => (
@@ -162,8 +204,8 @@ const AddScreen = () => {
         {topCards.length === 0 && topCategories.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons name="hand-left" size={48} color={colors.textMuted} />
-            <Text style={[styles.hint, { color: colors.textMuted }]}>Toque no botão + para adicionar</Text>
-            <Text style={[styles.subHint, { color: colors.textMuted }]}>Despesas, receitas ou boletos</Text>
+            <Text style={[styles.hint, { color: colors.textMuted }]}>{t('add.hint')}</Text>
+            <Text style={[styles.subHint, { color: colors.textMuted }]}>{t('add.subHint')}</Text>
           </View>
         )}
 
@@ -219,10 +261,10 @@ const AddScreen = () => {
 
             <ScrollView style={styles.modalBody}>
               <View style={styles.formGroup}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Descrição</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>{t('add.description')}</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.bgTertiary, color: colors.textPrimary }]}
-                  placeholder="Ex: Supermercado"
+                  placeholder={t('add.description')}
                   placeholderTextColor={colors.textMuted}
                   value={desc}
                   onChangeText={setDesc}
@@ -231,7 +273,7 @@ const AddScreen = () => {
 
               <View style={styles.formRow}>
                 <View style={[styles.formGroup, { flex: 1 }]}>
-                  <Text style={[styles.label, { color: colors.textSecondary }]}>Valor (R$)</Text>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t('add.amount')}</Text>
                   <TextInput
                     style={[styles.input, { backgroundColor: colors.bgTertiary, color: colors.textPrimary }]}
                     placeholder="0,00"
@@ -242,7 +284,7 @@ const AddScreen = () => {
                   />
                 </View>
                 <View style={[styles.formGroup, { flex: 1 }]}>
-                  <Text style={[styles.label, { color: colors.textSecondary }]}>Data</Text>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t('add.date')}</Text>
                   <TextInput
                     style={[styles.input, { backgroundColor: colors.bgTertiary, color: colors.textPrimary }]}
                     value={date}
@@ -253,7 +295,7 @@ const AddScreen = () => {
 
               {/* Categorias - Scroll Horizontal */}
               <View style={styles.formGroup}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Categoria</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>{t('add.category')}</Text>
                 <ScrollView 
                   horizontal 
                   showsHorizontalScrollIndicator={false}
@@ -277,20 +319,9 @@ const AddScreen = () => {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Forma de Pagamento</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>{t('add.paymentMethod')}</Text>
                 <View style={styles.paymentOptions}>
-                  {(transactionType === 'income' 
-                    ? [
-                        { key: 'pix', label: 'PIX', icon: 'qr-code' },
-                        { key: 'cash', label: 'Dinheiro', icon: 'cash' },
-                      ]
-                    : [
-                        { key: 'card', label: 'Cartão', icon: 'card' },
-                        { key: 'pix', label: 'PIX', icon: 'qr-code' },
-                        { key: 'boleto', label: 'Boleto', icon: 'barcode' },
-                        { key: 'cash', label: 'Dinheiro', icon: 'cash' },
-                      ]
-                  ).map(method => (
+                  {paymentMethods.map(method => (
                     <TouchableOpacity
                       key={method.key}
                       activeOpacity={0.7}
@@ -317,7 +348,7 @@ const AddScreen = () => {
               {transactionType !== 'income' && paymentMethod === 'card' && cards.length > 0 && (
                 <>
                   <View style={styles.formGroup}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>Cartão</Text>
+                    <Text style={[styles.label, { color: colors.textSecondary }]}>{t('add.card')}</Text>
                     <ScrollView 
                       horizontal 
                       showsHorizontalScrollIndicator={false}
@@ -342,13 +373,20 @@ const AddScreen = () => {
                     </ScrollView>
                   </View>
 
+                  {/* NOVO: Aviso de próxima fatura */}
+                  {invoiceWarning && (
+                    <View style={[styles.invoiceWarning, { backgroundColor: invoiceWarning.color + '15', borderColor: invoiceWarning.color + '40' }]}>
+                      <Ionicons name="calendar" size={16} color={invoiceWarning.color} />
+                      <Text style={[styles.invoiceWarningText, { color: invoiceWarning.color }]}>
+                        {invoiceWarning.message}
+                      </Text>
+                    </View>
+                  )}
+
                   <View style={styles.formGroup}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>Tipo do Cartão</Text>
+                    <Text style={[styles.label, { color: colors.textSecondary }]}>{t('add.cardType')}</Text>
                     <View style={styles.paymentOptions}>
-                      {[
-                        { key: 'credit', label: 'Crédito', icon: 'card' },
-                        { key: 'debit', label: 'Débito', icon: 'card' },
-                      ].map(type => (
+                      {cardTypes.map(type => (
                         <TouchableOpacity
                           key={type.key}
                           activeOpacity={0.7}
@@ -375,7 +413,7 @@ const AddScreen = () => {
 
               {transactionType === 'boleto' && (
                 <View style={styles.formGroup}>
-                  <Text style={[styles.label, { color: colors.textSecondary }]}>Vencimento do Boleto</Text>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t('add.boletoDue')}</Text>
                   <TextInput
                     style={[styles.input, { backgroundColor: colors.bgTertiary, color: colors.textPrimary }]}
                     placeholder="YYYY-MM-DD"
@@ -391,7 +429,10 @@ const AddScreen = () => {
                 onPress={handleSubmit}
               >
                 <Ionicons name="save" size={18} color="#FFFFFF" />
-                <Text style={styles.submitText}>Registrar {typeConfig[transactionType].title.split(' ')[1]}</Text>
+                <Text style={styles.submitText}>
+                  {transactionType === 'expense' ? t('add.registerExpense') : 
+                   transactionType === 'income' ? t('add.registerIncome') : t('add.registerBoleto')}
+                </Text>
               </TouchableOpacity>
 
               <View style={{ height: 40 }} />
@@ -407,99 +448,82 @@ const AddScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scroll: { flex: 1 },
+  header: { 
+    paddingTop: 50, 
+    paddingHorizontal: 16, 
+    paddingBottom: 16, 
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: { fontSize: 20, fontWeight: '700' },
+  scroll: { flex: 1, paddingHorizontal: 16 },
 
-  // Resumo - Cartões
-  section: { marginTop: 16, paddingHorizontal: 16 },
-  sectionTitle: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
-  cardScroll: { paddingVertical: 4, gap: 8 },
-  topCard: { 
-    width: 140, 
-    padding: 16, 
-    borderRadius: 16, 
-    marginRight: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  topCardBar: { 
-    width: 40, 
-    height: 4, 
-    borderRadius: 2, 
-    marginBottom: 12 
-  },
-  topCardName: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
+  section: { marginBottom: 20 },
+  sectionTitle: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
+
+  cardScroll: { paddingRight: 16, gap: 10 },
+  topCard: { width: 160, padding: 14, borderRadius: 16, marginRight: 10 },
+  topCardBar: { width: 40, height: 4, borderRadius: 2, marginBottom: 10 },
+  topCardName: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
   topCardNumber: { fontSize: 11, marginBottom: 8 },
-  topCardValue: { fontSize: 16, fontWeight: '700', marginBottom: 2 },
-  topCardLabel: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  topCardValue: { fontSize: 16, fontWeight: '700' },
+  topCardLabel: { fontSize: 10, textTransform: 'uppercase', marginTop: 2 },
 
-  // Resumo - Categorias
-  categoryList: { 
-    borderRadius: 16, 
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  categoryRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingVertical: 10, 
-    paddingHorizontal: 8 
-  },
-  categoryLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  categoryRank: { 
-    width: 24, 
-    height: 24, 
-    borderRadius: 12, 
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  },
-  categoryRankText: { fontSize: 11, fontWeight: '700' },
-  categoryIconBg: { 
-    width: 32, 
-    height: 32, 
-    borderRadius: 8, 
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  },
-  categoryName: { fontSize: 14, fontWeight: '500' },
+  categoryList: { borderRadius: 16, padding: 12 },
+  categoryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
+  categoryLeft: { flexDirection: 'row', alignItems: 'center' },
+  categoryRank: { width: 24, height: 24, borderRadius: 6, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  categoryRankText: { fontSize: 12, fontWeight: '700' },
+  categoryIconBg: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  categoryName: { fontSize: 14, fontWeight: '600' },
   categoryValue: { fontSize: 14, fontWeight: '700' },
 
-  // Empty State
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
-  hint: { fontSize: 16, marginBottom: 8, marginTop: 16 },
-  subHint: { fontSize: 12 },
+  emptyState: { alignItems: 'center', paddingVertical: 100 },
+  hint: { fontSize: 16, fontWeight: '600', marginTop: 16 },
+  subHint: { fontSize: 13, marginTop: 4 },
 
-  // FAB
-  fab: { position: 'absolute', bottom: 90, right: 20, width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8, zIndex: 500 },
-  fabMenu: { position: 'absolute', bottom: 160, right: 25, gap: 12, zIndex: 400 },
-  fabItem: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 6 },
+  fab: { position: 'absolute', right: 20, bottom: 30, width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
+  fabMenu: { position: 'absolute', right: 20, bottom: 96, alignItems: 'center', gap: 12 },
+  fabItem: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 },
 
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  modalTitle: { fontSize: 18, fontWeight: '600' },
-  modalBody: { padding: 20 },
-  formGroup: { marginBottom: 20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: '90%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 18, fontWeight: '700' },
+
+  formGroup: { marginBottom: 16 },
   formRow: { flexDirection: 'row', gap: 12 },
   label: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  input: { padding: 12, borderRadius: 12, fontSize: 15, borderWidth: 2, borderColor: 'transparent' },
-  categoryScroll: { paddingVertical: 4, gap: 8 },
-  categoryChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, marginRight: 8 },
-  paymentOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  paymentOption: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 12, borderRadius: 12, minWidth: 80, justifyContent: 'center' },
-  cardChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, marginRight: 8 },
-  header: { paddingTop: 50, paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1 },
-  headerTitle: { fontSize: 20, fontWeight: '700' },
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16, borderRadius: 12, marginTop: 8 },
-  submitText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  input: { padding: 14, borderRadius: 12, fontSize: 16 },
+
+  categoryScroll: { paddingRight: 16, gap: 8 },
+  categoryChip: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, marginRight: 8 },
+
+  paymentOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  paymentOption: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12 },
+
+  cardChip: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, marginRight: 8 },
+
+  // NOVO: Estilos do aviso de próxima fatura
+  invoiceWarning: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8, 
+    padding: 12, 
+    borderRadius: 10, 
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  invoiceWarningText: { 
+    fontSize: 13, 
+    fontWeight: '600', 
+    flex: 1,
+  },
+
+  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16, borderRadius: 14, marginTop: 8 },
+  submitText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
 });
 
 export default AddScreen;

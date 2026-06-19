@@ -1,9 +1,12 @@
+// HistoryScreen.js — COM TRADUÇÕES COMPLETAS
+
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { PieChart, BarChart } from 'react-native-chart-kit';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslate } from '../hooks/useTranslate';
 import { formatCurrency, getCurrentMonth, getMonthYear } from '../utils/helpers';
 import TransactionItem from '../components/TransactionItem';
 import Toast from '../components/Toast';
@@ -13,6 +16,7 @@ const { width } = Dimensions.get('window');
 const HistoryScreen = () => {
   const { transactions, categories, deleteTransaction } = useApp();
   const { colors, darkMode } = useTheme();
+  const { t } = useTranslate();
   const [chartType, setChartType] = useState('pie');
   const [filter, setFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState(null);
@@ -49,16 +53,16 @@ const HistoryScreen = () => {
 
   const handleDelete = (id) => {
     Alert.alert(
-      'Confirmar exclusão',
-      'Deseja excluir esta transação?',
+      t('history.confirmDeleteTitle'),
+      t('history.confirmDeleteMessage'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         { 
-          text: 'Excluir', 
+          text: t('common.delete'), 
           style: 'destructive',
           onPress: () => {
             deleteTransaction(id);
-            showToast('Transação excluída', 'warning');
+            showToast(t('history.transactionDeleted'), 'warning');
           }
         },
       ]
@@ -69,7 +73,7 @@ const HistoryScreen = () => {
     <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
       <View style={[styles.header, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-          <Ionicons name="time" size={20} color={colors.primary} />  Histórico
+          <Ionicons name="time" size={20} color={colors.primary} />  {t('history.title')}
         </Text>
       </View>
 
@@ -78,20 +82,20 @@ const HistoryScreen = () => {
         <View style={[styles.chartSection, { backgroundColor: colors.bgCard }]}>
           <View style={styles.chartHeader}>
             <Text style={[styles.chartTitle, { color: colors.textPrimary }]}>
-              <Ionicons name="pie-chart" size={16} color={colors.primary} />  Gastos por Categoria
+              <Ionicons name="pie-chart" size={16} color={colors.primary} />  {t('history.expensesByCategory')}
             </Text>
             <View style={styles.chartTabs}>
               <TouchableOpacity 
                 style={[styles.chartTab, chartType === 'pie' && { backgroundColor: colors.primary }]}
                 onPress={() => setChartType('pie')}
               >
-                <Text style={chartType === 'pie' ? { color: '#FFFFFF' } : { color: colors.textSecondary }}>Pizza</Text>
+                <Text style={chartType === 'pie' ? { color: '#FFFFFF' } : { color: colors.textSecondary }}>{t('history.pie')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.chartTab, chartType === 'bar' && { backgroundColor: colors.primary }]}
                 onPress={() => setChartType('bar')}
               >
-                <Text style={chartType === 'bar' ? { color: '#FFFFFF' } : { color: colors.textSecondary }}>Barras</Text>
+                <Text style={chartType === 'bar' ? { color: '#FFFFFF' } : { color: colors.textSecondary }}>{t('history.bar')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -136,22 +140,22 @@ const HistoryScreen = () => {
             )
           ) : (
             <View style={styles.emptyChart}>
-              <Text style={{ color: colors.textMuted }}>Sem dados para o período</Text>
+              <Text style={{ color: colors.textMuted }}>{t('history.noData')}</Text>
             </View>
           )}
 
           <Text style={[styles.chartHint, { color: colors.textMuted }]}>
-            <Ionicons name="information-circle" size={12} /> Toque em uma fatia para filtrar
+            <Ionicons name="information-circle" size={12} /> {t('history.tapSlice')}
           </Text>
         </View>
 
         {/* Filters */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar}>
           {[
-            { key: 'all', label: 'Todas' },
-            { key: 'expense', label: 'Despesas' },
-            { key: 'income', label: 'Receitas' },
-            { key: 'boleto', label: 'Boletos' },
+            { key: 'all', label: t('history.all') },
+            { key: 'expense', label: t('history.expenses') },
+            { key: 'income', label: t('history.incomes') },
+            { key: 'boleto', label: t('history.boletos') },
           ].map(f => (
             <TouchableOpacity
               key={f.key}
@@ -166,7 +170,7 @@ const HistoryScreen = () => {
               }}
             >
               <Text style={filter === f.key && !categoryFilter ? { color: '#FFFFFF' } : { color: colors.textSecondary }}>
-                {categoryFilter && f.key === 'all' ? `Filtro: ${categoryFilter}` : f.label}
+                {categoryFilter && f.key === 'all' ? `${t('history.filter')}: ${categoryFilter}` : f.label}
               </Text>
             </TouchableOpacity>
           ))}
@@ -175,11 +179,11 @@ const HistoryScreen = () => {
         {/* Period Summary */}
         <View style={styles.periodSummary}>
           <View style={[styles.periodCard, { backgroundColor: colors.bgCard }]}>
-            <Text style={[styles.periodLabel, { color: colors.textMuted }]}>Período</Text>
+            <Text style={[styles.periodLabel, { color: colors.textMuted }]}>{t('history.period')}</Text>
             <Text style={[styles.periodValue, { color: colors.textPrimary }]}>{getMonthYear()}</Text>
           </View>
           <View style={[styles.periodCard, { backgroundColor: colors.bgCard }]}>
-            <Text style={[styles.periodLabel, { color: colors.textMuted }]}>Total</Text>
+            <Text style={[styles.periodLabel, { color: colors.textMuted }]}>{t('history.total')}</Text>
             <Text style={[styles.periodValue, { color: colors.textPrimary }]}>{formatCurrency(monthTotal)}</Text>
           </View>
         </View>
@@ -190,7 +194,7 @@ const HistoryScreen = () => {
             <View style={[styles.emptyState, { backgroundColor: colors.bgCard }]}>
               <Ionicons name="receipt" size={48} color={colors.textMuted} />
               <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                {categoryFilter ? 'Nenhuma transação nesta categoria' : 'Nenhuma transação encontrada'}
+                {categoryFilter ? t('history.noCategoryTransactions') : t('history.noTransactions')}
               </Text>
             </View>
           ) : (
@@ -230,10 +234,10 @@ const styles = StyleSheet.create({
   periodSummary: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   periodCard: { flex: 1, padding: 16, borderRadius: 12, alignItems: 'center' },
   periodLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
-  periodValue: { fontSize: 16, fontWeight: '700' },
+  periodValue: { fontSize: 18, fontWeight: '700' },
   transactionsList: { gap: 8 },
-  emptyState: { padding: 32, borderRadius: 16, alignItems: 'center' },
-  emptyText: { fontSize: 14, marginTop: 8 },
+  emptyState: { alignItems: 'center', padding: 40, borderRadius: 16 },
+  emptyText: { fontSize: 16, fontWeight: '600', marginTop: 12 },
 });
 
 export default HistoryScreen;
