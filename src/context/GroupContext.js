@@ -510,15 +510,6 @@ export const GroupProvider = ({ children }) => {
 
       if (error) throw error;
 
-      // 2. ✅ Salvar os DADOS REAIS nas tabelas compartilhadas para outros usuários acessarem
-      if (cleanType === 'card') {
-        // Buscar dados do cartão do AppContext — precisamos receber cards via prop ou buscar
-        // Como não temos acesso direto ao AppContext aqui, vamos buscar do Supabase
-        // ou esperar que o GroupScreen passe os dados. 
-        // SOLUÇÃO: vamos criar uma função auxiliar que recebe os dados
-        console.warn('[shareItem] Cards devem ser salvos via saveSharedCardData() após shareItem');
-      }
-
       const newItem = {
         id: data.id,
         itemType: cleanType,
@@ -541,7 +532,21 @@ export const GroupProvider = ({ children }) => {
   // ✅ NOVA FUNÇÃO: Salvar dados reais do cartão compartilhado
   const saveSharedCardData = async (cardData) => {
     if (!currentGroup || !currentUser) return { error: 'Sem grupo' };
+    console.log('[saveSharedCardData] Salvando cartão:', cardData.name, 'ID:', cardData.id);
     try {
+      const payload = {
+        id: String(cardData.id),
+        name: cardData.name,
+        card_limit: cardData.limit,
+        color: cardData.color,
+        bank: cardData.bankCode || cardData.bank,
+        close_day: parseInt(cardData.closeDate) || null,
+        due_day: parseInt(cardData.dueDate) || null,
+        user_id: currentUser.id,
+        group_id: currentGroup.id,
+        updated_at: new Date().toISOString(),
+      };
+      console.log('[saveSharedCardData] Payload:', payload);
       const { error } = await supabase
         .from('shared_cards')
         .upsert([{
@@ -557,10 +562,14 @@ export const GroupProvider = ({ children }) => {
           updated_at: new Date().toISOString(),
         }], { onConflict: 'id' });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[saveSharedCardData] Erro Supabase:', error);
+        throw error;
+      }
+      console.log('[saveSharedCardData] Sucesso!');
       return { success: true };
     } catch (e) {
-      console.warn('Erro ao salvar shared card:', e);
+      console.error('[saveSharedCardData] Erro:', e.message || e);
       return { error: e.message };
     }
   };
@@ -730,6 +739,9 @@ export const GroupProvider = ({ children }) => {
         cards: cardIds.length,
         transactions: transactionIds.length,
         goals: goalIds.length,
+        cardIds: cardIds,
+        transactionIds: transactionIds,
+        goalIds: goalIds,
       });
 
       const [cardsRes, transactionsRes, goalsRes] = await Promise.all([
