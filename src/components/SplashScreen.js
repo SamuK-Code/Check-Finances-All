@@ -5,13 +5,19 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Definição de cores vibrantes (Aurora/Neon)
+const gradientSchemes = {
+  purple: ['#A78BFA', '#7C3AED', '#EC4899'],
+  blue: ['#1D4ED8', '#0D9488', '#BEF264'],
+  green: ['#047857', '#10B981', '#F59E0B'],
+};
+
 const SplashScreen = ({ onFinish }) => {
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  const iconScale = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current; // Trocado para progressAnim
   const contentTranslateY = useRef(new Animated.Value(40)).current;
 
-  // Animações de opacidade para cada esquema de cor (perfeitas para Native Driver)
+  // Animações de opacidade para o cross-fade
   const opacityScheme1 = useRef(new Animated.Value(1)).current;
   const opacityScheme2 = useRef(new Animated.Value(0)).current;
   const opacityScheme3 = useRef(new Animated.Value(0)).current;
@@ -19,39 +25,27 @@ const SplashScreen = ({ onFinish }) => {
   useEffect(() => {
     StatusBar.setHidden(true);
 
-    // Animações de entrada do conteúdo
-    Animated.parallel([
-      Animated.spring(iconScale, {
-        toValue: 1,
-        friction: 6,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(contentTranslateY, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    Animated.timing(contentTranslateY, {
+      toValue: 0,
+      duration: 1000,
+      delay: 200,
+      useNativeDriver: true,
+    }).start();
 
-    // Loop do degradê móvel via transição de opacidade (Cross-fade)
     const startGradientAnimation = () => {
       Animated.loop(
         Animated.sequence([
-          // Transição para o Esquema 2
           Animated.parallel([
-            Animated.timing(opacityScheme1, { toValue: 0, duration: 2500, useNativeDriver: true }),
-            Animated.timing(opacityScheme2, { toValue: 1, duration: 2500, useNativeDriver: true }),
+            Animated.timing(opacityScheme1, { toValue: 0, duration: 3000, useNativeDriver: true }),
+            Animated.timing(opacityScheme2, { toValue: 1, duration: 3000, useNativeDriver: true }),
           ]),
-          // Transição para o Esquema 3
           Animated.parallel([
-            Animated.timing(opacityScheme2, { toValue: 0, duration: 2500, useNativeDriver: true }),
-            Animated.timing(opacityScheme3, { toValue: 1, duration: 2500, useNativeDriver: true }),
+            Animated.timing(opacityScheme2, { toValue: 0, duration: 3000, useNativeDriver: true }),
+            Animated.timing(opacityScheme3, { toValue: 1, duration: 3000, useNativeDriver: true }),
           ]),
-          // Voltar para o Esquema 1
           Animated.parallel([
-            Animated.timing(opacityScheme3, { toValue: 0, duration: 2500, useNativeDriver: true }),
-            Animated.timing(opacityScheme1, { toValue: 1, duration: 2500, useNativeDriver: true }),
+            Animated.timing(opacityScheme3, { toValue: 0, duration: 3000, useNativeDriver: true }),
+            Animated.timing(opacityScheme1, { toValue: 1, duration: 3000, useNativeDriver: true }),
           ]),
         ])
       ).start();
@@ -59,24 +53,24 @@ const SplashScreen = ({ onFinish }) => {
 
     startGradientAnimation();
 
-    // Barra de progresso
+    // Animação da Barra de Progresso (deve ser false para animar 'width')
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 2200,
-      useNativeDriver: false, // Necessário false pois anima 'width' em %
+      duration: 2000,
+      useNativeDriver: false, 
     }).start();
 
-    // Fade out de saída da tela inteira
+    // Fade out de saída da tela
     const timer = setTimeout(() => {
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 700,
+        duration: 800,
         useNativeDriver: true,
       }).start(() => {
         StatusBar.setHidden(false);
         if (onFinish) onFinish();
       });
-    }, 2600);
+    }, 2800);
 
     return () => {
       StatusBar.setHidden(false);
@@ -84,6 +78,7 @@ const SplashScreen = ({ onFinish }) => {
     };
   }, []);
 
+  // Interpolação para a barra de progresso linear
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0%', '100%'],
@@ -92,40 +87,28 @@ const SplashScreen = ({ onFinish }) => {
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       
-      {/* Camada do Esquema 1 (Roxo) */}
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: opacityScheme1 }]}>
-        <LinearGradient colors={['#7C3AED', '#C4B5FD']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradient} />
+        <LinearGradient colors={gradientSchemes.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradient} />
       </Animated.View>
 
-      {/* Camada do Esquema 2 (Azul) */}
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: opacityScheme2 }]}>
-        <LinearGradient colors={['#2563EB', '#7DD3FC']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradient} />
+        <LinearGradient colors={gradientSchemes.blue} start={{ x: 0.1, y: 0.2 }} end={{ x: 0.9, y: 0.8 }} style={styles.gradient} />
       </Animated.View>
 
-      {/* Camada do Esquema 3 (Verde) */}
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: opacityScheme3 }]}>
-        <LinearGradient colors={['#10B981', '#6EE7B7']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradient} />
+        <LinearGradient colors={gradientSchemes.green} start={{ x: 0.2, y: 0.1 }} end={{ x: 0.8, y: 0.9 }} style={styles.gradient} />
       </Animated.View>
 
-      {/* Conteúdo Centralizado */}
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            transform: [{ translateY: contentTranslateY }],
-          },
-        ]}
-      >
+      <Animated.View style={[styles.content, { transform: [{ translateY: contentTranslateY }] }]}>
         <View style={styles.logoContainer}>
-          <Animated.View style={{ transform: [{ scale: iconScale }] }}>
-            <Ionicons name="wallet" size={90} color="#FFFFFF" />
-          </Animated.View>
+          <Ionicons name="wallet-outline" size={100} color="#FFFFFF" />
         </View>
 
         <Text style={styles.title}>SmartExpense</Text>
         <Text style={styles.subtitle}>Controle financeiro inteligente</Text>
 
-        <View style={styles.loader}>
+        {/* Barra de Progresso Corrigida */}
+        <View style={styles.loaderContainer}>
           <Animated.View style={[styles.loaderBar, { width: progressWidth }]} />
         </View>
 
@@ -154,57 +137,60 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: SCREEN_WIDTH,
-    position: 'absolute', // Garante que fique acima dos backgrounds absolutados
+    position: 'absolute',
   },
   logoContainer: {
-    marginBottom: 24,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginBottom: 30,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 28,
+    elevation: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.25)',
   },
   title: {
-    fontSize: 38,
-    fontWeight: 'bold',
+    fontSize: 42,
+    fontWeight: '800',
     color: '#FFFFFF',
-    letterSpacing: 1,
-    marginBottom: 8,
-    textShadowColor: 'rgba(0,0,0,0.15)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    letterSpacing: 1.5,
+    marginBottom: 10,
+    textShadowColor: 'rgba(0,0,0,0.18)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 10,
   },
   subtitle: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.85)',
-    letterSpacing: 0.5,
-    marginBottom: 36,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.92)',
+    letterSpacing: 0.6,
+    marginBottom: 48,
     fontWeight: '500',
   },
-  loader: {
-    width: 160,
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 2,
+  loaderContainer: {
+    width: 220,
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 20,
+    alignItems: 'flex-start', // Garante que a barra preencha da esquerda para a direita
   },
   loaderBar: {
     height: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 2,
+    borderRadius: 4,
   },
   version: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(255,255,255,0.6)',
     fontWeight: '600',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
 });
 

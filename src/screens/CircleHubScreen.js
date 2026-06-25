@@ -1303,7 +1303,7 @@ const styles = StyleSheet.create({
   // Current Circle Card
   currentCircleCard: { borderRadius: 20, padding: 20, marginBottom: 16 },
   currentCircleHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
-  currentCircleIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary + '1A', justifyContent: 'center', alignItems: 'center' },
+  currentCircleIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(99, 102, 241, 0.1)', justifyContent: 'center', alignItems: 'center' },
   currentCircleInfo: { flex: 1 },
   currentCircleName: { fontSize: 20, fontWeight: '700' },
   currentCircleRole: { fontSize: 13, marginTop: 2 },

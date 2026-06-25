@@ -661,7 +661,17 @@ export const CircleProvider = ({ children }) => {
   };
 
   const switchCircle = async (circleId) => {
-    const circle = myCircles.find(c => c.id === circleId);
+  // Se circleId for null, desseleciona o círculo (volta para "Meus Dados")
+  if (circleId === null) {
+    setCurrentCircle(null);
+    await AsyncStorage.removeItem(STORAGE_KEYS.currentCircle);
+    stopRealTimeSubscriptions();
+    stopAutoSync();
+    setSyncEnabled(false);
+    return { success: true };
+  }
+
+  const circle = myCircles.find(c => c.id === circleId);
     if (!circle) return { error: 'Círculo não encontrado' };
 
     setCurrentCircle(circle);

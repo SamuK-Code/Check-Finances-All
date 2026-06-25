@@ -1,6 +1,6 @@
-// AddScreen.js — COM INDICADOR DE PRÓXIMA FATURA
+// AddScreen.js — COM INDICADOR DE PRÓXIMA FATURA + CORREÇÕES DE MODAL E INPUT DE MOEDA
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useApp } from '../context/AppContext';
@@ -28,7 +28,6 @@ const AddScreen = () => {
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
   const [fabOpen, setFabOpen] = useState(false);
 
-
   // ── POOL DE DADOS ──
   const displayCards = useMemo(() => {
     return currentCircle
@@ -41,10 +40,34 @@ const AddScreen = () => {
       ? (mergedTransactions || []).filter(t => !t._circleId || t._circleId === currentCircle.id)
       : transactions;
   }, [currentCircle, transactions, mergedTransactions]);
+
   const typeConfig = {
     expense: { title: t('add.newExpense'), color: colors.danger, icon: 'remove-circle' },
     income: { title: t('add.newIncome'), color: colors.success, icon: 'add-circle' },
     boleto: { title: t('add.newBoleto'), color: colors.warning, icon: 'barcode' },
+  };
+
+  // ── HELPERS DE FORMATAÇÃO DE MOEDA ──
+  const formatCurrencyInput = (value) => {
+    let cleaned = value.replace(/[^\d.,]/g, '');
+    let normalized = cleaned.replace(',', '.');
+    const parts = normalized.split('.');
+    if (parts.length > 2) {
+      normalized = parts[0] + '.' + parts.slice(1).join('');
+    }
+    const displayValue = normalized.replace('.', ',');
+    return displayValue;
+  };
+
+  const parseCurrencyToNumber = (value) => {
+    if (!value) return 0;
+    const normalized = value.replace(/\./g, '').replace(',', '.');
+    return parseFloat(normalized) || 0;
+  };
+
+  const handleAmountChange = (text) => {
+    const formatted = formatCurrencyInput(text);
+    setAmount(formatted);
   };
 
   // Calcular cartões mais utilizados (top 3 por valor gasto)
@@ -87,10 +110,8 @@ const AddScreen = () => {
       return;
     }
 
-    // Deduz do cashBalance
     updateCashBalance(-boleto.amount);
 
-    // Marca o boleto como pago via editTransaction
     editTransaction(boleto.id, {
       isPaid: true,
       paidAt: new Date().toISOString(),
@@ -130,43 +151,38 @@ const AddScreen = () => {
     setDesc('');
     setAmount('');
     setCategoryId('');
+    setCardType('credit');
     setPaymentMethod(type === 'income' ? 'pix' : 'card');
     setCardId('');
-    setCardType('credit');
     setBoletoDue('');
     setFabOpen(false);
   };
 
-  // ✅ CORREÇÃO: Validação condicional para income (não exige categoryId)
   const handleSubmit = () => {
-    if (!desc || !amount || (transactionType !== 'income' && !categoryId)) {
+    const numericAmount = parseCurrencyToNumber(amount);
+    if (!desc || !numericAmount || (transactionType !== 'income' && !categoryId)) {
       showToast(t('add.fillRequired'), 'error');
       return;
     }
 
-    // ✅ CORREÇÃO: Categoria padrão para income
     const category = transactionType === 'income'
       ? { id: 'income', name: 'Receita', icon: 'cash', color: colors.success }
       : categories.find(c => c.id === categoryId);
 
-    const selectedCard = cards.find(c => c.id.toString() === cardId?.toString());
+    const selectedCard = displayCards.find(c => c.id.toString() === cardId?.toString());
+
     const isCreditCard = paymentMethod === 'card' && cardType === 'credit';
     const isDebitCard = paymentMethod === 'card' && cardType === 'debit';
 
-    // Se for débito, deduz do cashBalance imediatamente
-    if (isDebitCard) {
-      const expenseAmount = parseFloat(amount);
-      if (cashBalance < expenseAmount) {
-        showToast(`Saldo em caixa insuficiente. Disponível: ${formatCurrency(cashBalance)}`, 'error');
-        return;
-      }
-      updateCashBalance(-expenseAmount);
+    if (isDebitCard && cashBalance < numericAmount) {
+      showToast(`Saldo em caixa insuficiente. Disponível: ${formatCurrency(cashBalance)}`, 'error');
+      return;
     }
 
     const transaction = {
       type: transactionType,
       desc,
-      amount: parseFloat(amount),
+      amount: numericAmount,
       date,
       category: categoryId || 'income',
       categoryName: category ? category.name : t('categories.other'),
@@ -176,7 +192,6 @@ const AddScreen = () => {
       cardId: paymentMethod === 'card' ? parseInt(cardId, 10) : null,
       cardType: paymentMethod === 'card' ? cardType : null,
       boletoDue: transactionType === 'boleto' ? boletoDue : null,
-      // Só marca como próxima fatura se for cartão de CRÉDITO
       isNextInvoice: isCreditCard && selectedCard ? isAfterClosingDate(date, selectedCard.closeDate) : false,
       invoiceMonth: isCreditCard && selectedCard ? getInvoiceMonth(date, selectedCard.closeDate) : null,
     };
@@ -205,7 +220,7 @@ const AddScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
-      {/* Header */}
+      {/* Header — CORREÇÃO: layout limpo, título e chip bem separados */}
       <View style={[styles.header, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
         <View style={styles.headerTop}>
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
@@ -349,7 +364,7 @@ const AddScreen = () => {
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={[styles.modalOverlay, { backgroundColor: colors.bgCard }]}
+          style={styles.modalOverlay}
         >
           <View style={[styles.modalContent, { backgroundColor: colors.bgCard }]}>
             <View style={styles.modalHeader}>
@@ -383,7 +398,7 @@ const AddScreen = () => {
                     placeholderTextColor={colors.textMuted}
                     keyboardType="decimal-pad"
                     value={amount}
-                    onChangeText={setAmount}
+                    onChangeText={handleAmountChange}
                   />
                 </View>
                 <View style={[styles.formGroup, { flex: 1 }]}>
@@ -435,7 +450,12 @@ const AddScreen = () => {
                         styles.paymentOption,
                         { backgroundColor: paymentMethod === method.key ? colors.primary + '10' : colors.bgTertiary },
                       ]}
-                      onPress={() => setPaymentMethod(method.key)}
+                      onPress={() => {
+                        setPaymentMethod(method.key);
+                        if (method.key === 'card') {
+                          setCardType('credit');
+                        }
+                      }}
                     >
                       <Ionicons 
                         name={method.icon} 
@@ -450,8 +470,8 @@ const AddScreen = () => {
                 </View>
               </View>
 
-              {/* Cartão selecionado → Scroll horizontal estilo categorias */}
-              {transactionType !== 'income' && paymentMethod === 'card' && cards.length > 0 && (
+              {/* Cartão selecionado */}
+              {transactionType !== 'income' && paymentMethod === 'card' && displayCards.length > 0 && (
                 <>
                   <View style={styles.formGroup}>
                     <Text style={[styles.label, { color: colors.textSecondary }]}>{t('add.card')}</Text>
@@ -480,7 +500,6 @@ const AddScreen = () => {
                     </ScrollView>
                   </View>
 
-                  {/* NOVO: Aviso de próxima fatura */}
                   {invoiceWarning && (
                     <View style={[styles.invoiceWarning, { backgroundColor: invoiceWarning.color + '15', borderColor: invoiceWarning.color + '40' }]}>
                       <Ionicons name="calendar" size={16} color={invoiceWarning.color} />
@@ -533,7 +552,8 @@ const AddScreen = () => {
                   <TouchableOpacity
                     style={[styles.payBoletoBtn, { backgroundColor: colors.success }]}
                     onPress={() => {
-                      if (!desc || !amount) {
+                      const numericAmount = parseCurrencyToNumber(amount);
+                      if (!desc || !numericAmount) {
                         showToast(t('add.fillRequired'), 'error');
                         return;
                       }
@@ -541,7 +561,7 @@ const AddScreen = () => {
                       const transaction = {
                         type: 'expense',
                         desc: desc + ' (Boleto Quitado)',
-                        amount: parseFloat(amount),
+                        amount: numericAmount,
                         date,
                         category: categoryId,
                         categoryName: category ? category.name : t('categories.other'),
@@ -599,9 +619,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, 
     paddingBottom: 16, 
     borderBottomWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   headerTitle: { fontSize: 20, fontWeight: '700' },
   scroll: { flex: 1, paddingHorizontal: 16 },
@@ -652,7 +669,6 @@ const styles = StyleSheet.create({
 
   cardChip: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, marginRight: 8 },
 
-  // NOVO: Estilos do aviso de próxima fatura
   invoiceWarning: { 
     flexDirection: 'row', 
     alignItems: 'center', 
@@ -686,7 +702,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Estilos da lista de boletos pendentes
   boletoList: { borderRadius: 16, padding: 12 },
   boletoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 },
   boletoLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },

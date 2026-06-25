@@ -435,7 +435,25 @@ export const AppProvider = ({ children }) => {
     if (transaction.type === 'income') {
       setCashBalance(prev => prev + transaction.amount);
     } else if (transaction.type === 'expense' || transaction.type === 'boleto') {
-      setCashBalance(prev => prev - transaction.amount);
+      // ✅ CORREÇÃO: Cartão de CRÉDITO não afeta cashBalance (vai para fatura)
+      const isCreditCard = transaction.paymentMethod === 'card' && transaction.cardType === 'credit';
+      const isPix = transaction.paymentMethod === 'pix';
+      const isCash = transaction.paymentMethod === 'cash';
+      const isBoleto = transaction.paymentMethod === 'boleto';
+      const isDebitCard = transaction.paymentMethod === 'card' && transaction.cardType === 'debit';
+
+      if (isCreditCard) {
+        // Crédito: não deduz do caixa (fatura futura)
+        console.log('[addTransaction] Cartão de CRÉDITO - NÃO deduz do cashBalance');
+      } else if (isDebitCard || isPix || isCash || isBoleto) {
+        // Débito, Pix, Dinheiro, Boleto: deduz do caixa
+        console.log('[addTransaction] Débito/Pix/Dinheiro/Boleto - Deduz do cashBalance:', transaction.amount);
+        setCashBalance(prev => prev - transaction.amount);
+      } else {
+        // Fallback para outros casos
+        console.log('[addTransaction] Outro método - Deduz do cashBalance:', transaction.amount);
+        setCashBalance(prev => prev - transaction.amount);
+      }
     }
 
     playSound('add');
@@ -447,7 +465,12 @@ export const AppProvider = ({ children }) => {
       if (transaction.type === 'income') {
         setCashBalance(prev => prev - transaction.amount);
       } else if (transaction.type === 'expense' || transaction.type === 'boleto') {
-        setCashBalance(prev => prev + transaction.amount);
+        // ✅ CORREÇÃO: Se foi cartão de CRÉDITO, não tinha deduzido do caixa
+        // então não deve adicionar de volta ao deletar
+        const wasCreditCard = transaction.paymentMethod === 'card' && transaction.cardType === 'credit';
+        if (!wasCreditCard) {
+          setCashBalance(prev => prev + transaction.amount);
+        }
       }
     }
     setTransactions(prev => prev.filter(t => t.id !== id));
@@ -467,12 +490,20 @@ export const AppProvider = ({ children }) => {
   // ═══════════════════════════════════════════════════════════
 
   const addGoal = useCallback((goal) => {
+    // ✅ CORREÇÃO: Helper robusto para parsear valores com vírgula
+    const parseMoney = (value) => {
+      if (typeof value === 'number') return value;
+      if (!value) return 0;
+      const normalized = value.toString().replace(/\./g, '').replace(',', '.');
+      return parseFloat(normalized) || 0;
+    };
+
     const newGoal = {
       ...goal,
       id: Date.now().toString(),
       name: goal.name,
-      target: parseFloat(goal.target),
-      current: 0,
+      target: parseMoney(goal.target),           // ✅ usa parseMoney ao invés de parseFloat
+      current: parseMoney(goal.currentAmount),    // ✅ typo corrigido: currenctAmount → currentAmount
       deadline: goal.deadline || null,
       icon: goal.icon || 'flag',
       color: goal.color || '#6366F1',

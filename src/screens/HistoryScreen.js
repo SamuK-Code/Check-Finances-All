@@ -294,12 +294,12 @@ const HistoryScreen = () => {
           <View style={[styles.statCard, { backgroundColor: darkMode ? colors.bgCard : colors.success + '15' }]}>
             <Ionicons name="arrow-up-circle" size={18} color={colors.success} />
             <Text style={[styles.statValue, { color: colors.success }]}>{formatCurrency(stats.income)}</Text>
-            <Text style={[styles.statLabel, { color: colors.textMuted }]}>{t('add.income')}</Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>{t('common.income')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: darkMode ? colors.bgCard : colors.danger + '10' }]}>
             <Ionicons name="arrow-down-circle" size={18} color={colors.danger} />
             <Text style={[styles.statValue, { color: colors.danger }]}>{formatCurrency(stats.expense)}</Text>
-            <Text style={[styles.statLabel, { color: colors.textMuted }]}>{t('add.expense')}</Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>{t('common.expense')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: darkMode ? colors.bgCard : colors.warning + '15' }]}>
             <Ionicons name="document-text" size={18} color={colors.warning} />
@@ -438,7 +438,7 @@ const HistoryScreen = () => {
             </Text>
           </View>
           <View style={[styles.periodCard, { backgroundColor: darkMode ? colors.bgCard : colors.bgTertiary }]}>
-            <Text style={[styles.periodLabel, { color: colors.textMuted }]}>{t('common.transactions')}</Text>
+            <Text style={[styles.periodLabel, { color: colors.textMuted }]}>{t('groups.transactions')}</Text>
             <Text style={[styles.periodValue, { color: colors.textPrimary }]}>{stats.count}</Text>
           </View>
         </View>
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   chartTitle: { fontSize: 16, fontWeight: '600' },
-  chartTabs: { flexDirection: 'row', gap: 6, backgroundColor: colors.border + '40', borderRadius: 20, padding: 3 },
+  chartTabs: { flexDirection: 'row', gap: 6, backgroundColor: 'rgba(0, 0, 0, 0.025)', borderRadius: 20, padding: 3 },
   chartTab: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 17 },
   emptyChart: { height: 200, justifyContent: 'center', alignItems: 'center', gap: 8 },
   emptyChartText: { fontSize: 14, fontWeight: '500' },

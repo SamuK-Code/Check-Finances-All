@@ -1,6 +1,143 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+// ========== BANCOS BRASILEIROS ==========
+// Exportado para uso em CardsScreen.js e outros componentes
+export const BRAZILIAN_BANKS = [
+  { code: '001', name: 'Banco do Brasil', shortName: 'Banco do Brasil' },
+  { code: '104', name: 'Caixa Econômica Federal', shortName: 'Caixa' },
+  { code: '237', name: 'Bradesco', shortName: 'Bradesco' },
+  { code: '341', name: 'Itaú Unibanco', shortName: 'Itaú' },
+  { code: '033', name: 'Santander', shortName: 'Santander' },
+  { code: '077', name: 'Banco Inter', shortName: 'Inter' },
+  { code: '260', name: 'Nubank', shortName: 'Nubank' },
+  { code: '336', name: 'C6 Bank', shortName: 'C6 Bank' },
+  { code: '212', name: 'Banco Original', shortName: 'Original' },
+  { code: '422', name: 'Banco Safra', shortName: 'Safra' },
+  { code: '745', name: 'Citibank', shortName: 'Citi' },
+  { code: '623', name: 'Banco PAN', shortName: 'PAN' },
+  { code: '707', name: 'Banco Daycoval', shortName: 'Daycoval' },
+  { code: '655', name: 'Banco Votorantim', shortName: 'BV' },
+  { code: '318', name: 'Banco BMG', shortName: 'BMG' },
+  { code: '070', name: 'Banco de Brasília (BRB)', shortName: 'BRB' },
+  { code: '041', name: 'Banrisul', shortName: 'Banrisul' },
+  { code: '047', name: 'Banese', shortName: 'Banese' },
+  { code: '004', name: 'Banco do Nordeste', shortName: 'BNB' },
+  { code: '003', name: 'Banco da Amazônia', shortName: 'Basa' },
+  { code: '021', name: 'Banestes', shortName: 'Banestes' },
+  { code: '748', name: 'Sicredi', shortName: 'Sicredi' },
+  { code: '756', name: 'Sicoob', shortName: 'Sicoob' },
+  { code: '121', name: 'Agibank', shortName: 'Agibank' },
+  { code: '380', name: 'PicPay', shortName: 'PicPay' },
+  { code: '290', name: 'PagBank', shortName: 'PagBank' },
+  { code: '254', name: 'Paraná Banco', shortName: 'Paraná Banco' },
+  { code: '208', name: 'BTG Pactual', shortName: 'BTG' },
+  { code: '376', name: 'Banco JP Morgan', shortName: 'JP Morgan' },
+  { code: '064', name: 'Goldman Sachs', shortName: 'Goldman Sachs' },
+  // Bancos digitais/adicionais (códigos corrigidos para evitar duplicatas)
+  { code: '735', name: 'Neon', shortName: 'Neon' },           // ← CORRIGIDO: era 655 (duplicado)
+  { code: '323', name: 'Mercado Pago', shortName: 'Mercado Pago' },
+  { code: '102', name: 'XP Investimentos', shortName: 'XP' },
+  { code: '197', name: 'Stone', shortName: 'Stone' },
+  { code: '340', name: 'Superdigital', shortName: 'Superdigital' },
+  { code: '533', name: 'Will Bank', shortName: 'Will' },      // ← CORRIGIDO: era 290 (duplicado)
+  { code: '368', name: 'Banco Carrefour', shortName: 'Carrefour' },
+  { code: '630', name: 'Banco Smartbank', shortName: 'Smartbank' },
+  { code: '739', name: 'Banco Cetelem', shortName: 'Cetelem' },
+  { code: '757', name: 'Banco Keb Hana', shortName: 'Keb Hana' },
+  { code: '091', name: 'Unicred', shortName: 'Unicred' },
+  { code: '117', name: 'Advanced Cc', shortName: 'Advanced' },
+  { code: '119', name: 'Banco Western Union', shortName: 'Western Union' },
+  { code: '128', name: 'MS Bank', shortName: 'MS Bank' },
+  { code: '129', name: 'UBS Brasil', shortName: 'UBS' },
+  { code: '136', name: 'Unicred Cooperativa', shortName: 'Unicred Coop' },
+  { code: '142', name: 'Broker Brasil', shortName: 'Broker' },
+  { code: '143', name: 'Treviso Cc', shortName: 'Treviso' },
+  { code: '144', name: 'Bexs Banco', shortName: 'Bexs' },
+  { code: '159', name: 'Casa Credito', shortName: 'Casa Crédito' },
+  { code: '173', name: 'BRL Trust', shortName: 'BRL Trust' },
+  { code: '184', name: 'Banco Itaú BBA', shortName: 'Itaú BBA' },
+  { code: '204', name: 'Banco Bradesco Cartões', shortName: 'Bradesco Cards' },
+  { code: '228', name: 'Banco Itaú Consignado', shortName: 'Itaú Consig' },
+  { code: '229', name: 'Banco Cruzeiro do Sul', shortName: 'Cruzeiro Sul' },
+  { code: '230', name: 'Uniprime', shortName: 'Uniprime' },
+  { code: '233', name: 'Banco Cifra', shortName: 'Cifra' },
+  { code: '243', name: 'Banco Máxima', shortName: 'Máxima' },
+  { code: '246', name: 'Banco ABC Brasil', shortName: 'ABC' },
+  { code: '265', name: 'Banco Fator', shortName: 'Fator' },
+  { code: '300', name: 'Banco de La Nacion Argentina', shortName: 'La Nación' },
+  { code: '320', name: 'Banco Industrial e Comercial', shortName: 'BIC' },
+  { code: '329', name: 'Qi Sociedade de Crédito', shortName: 'Qi' },
+  { code: '330', name: 'Banco Bari', shortName: 'Bari' },
+  { code: '335', name: 'Banco Digio', shortName: 'Digio' },
+  { code: '366', name: 'Banco Société Générale', shortName: 'SocGen' },
+  { code: '370', name: 'Banco Mizuho', shortName: 'Mizuho' },
+  { code: '389', name: 'Banco Mercantil do Brasil', shortName: 'Mercantil' },
+  { code: '394', name: 'Banco Bradesco Financiamentos', shortName: 'Bradesco Fin' },
+  { code: '399', name: 'Kirton Bank', shortName: 'Kirton' },
+  { code: '412', name: 'Banco Capital', shortName: 'Capital' },
+  { code: '453', name: 'Banco Rural', shortName: 'Rural' },
+  { code: '456', name: 'Banco MUFG Brasil', shortName: 'MUFG' },
+  { code: '464', name: 'Banco Sumitomo Mitsui', shortName: 'Sumitomo' },
+  { code: '473', name: 'Banco Caixa Geral', shortName: 'Caixa Geral' },
+  { code: '477', name: 'Citibank N.A.', shortName: 'Citibank NA' },
+  { code: '487', name: 'Deutsche Bank', shortName: 'Deutsche' },
+  { code: '488', name: 'JPMorgan Chase Bank', shortName: 'JPMorgan' },
+  { code: '492', name: 'ING Bank', shortName: 'ING' },
+  { code: '494', name: 'Banco de La República', shortName: 'República' },
+  { code: '495', name: 'Banco de La Provincia', shortName: 'Provincia' },
+  { code: '505', name: 'Banco Credit Suisse', shortName: 'Credit Suisse' },
+  { code: '545', name: 'Banco Senso Ccvm', shortName: 'Senso' },
+  { code: '600', name: 'Banco Luso Brasileiro', shortName: 'Luso' },
+  { code: '604', name: 'Banco Industrial do Brasil', shortName: 'Industrial' },
+  { code: '610', name: 'Banco VR', shortName: 'VR' },
+  { code: '611', name: 'Banco Paulista', shortName: 'Paulista' },
+  { code: '612', name: 'Banco Guanabara', shortName: 'Guanabara' },
+  { code: '613', name: 'Banco Pecúnia', shortName: 'Pecúnia' },
+  { code: '626', name: 'Banco Ficsa', shortName: 'Ficsa' },
+  { code: '633', name: 'Banco Rendimento', shortName: 'Rendimento' },
+  { code: '634', name: 'Banco Triângulo', shortName: 'Triângulo' },
+  { code: '637', name: 'Banco Sofisa', shortName: 'Sofisa' },
+  { code: '638', name: 'Banco Prosper', shortName: 'Prosper' },
+  { code: '641', name: 'Banco Alvorada', shortName: 'Alvorada' },
+  { code: '643', name: 'Banco Pine', shortName: 'Pine' },
+  { code: '652', name: 'Itaú Unibanco Holding', shortName: 'Itaú Hold' },
+  { code: '653', name: 'Banco Indusval', shortName: 'Indusval' },
+  { code: '654', name: 'Banco A.J. Renner', shortName: 'Renner' },
+  { code: '712', name: 'Banco Ourinvest', shortName: 'Ourinvest' },
+  { code: '719', name: 'Banco Banif', shortName: 'Banif' },
+  { code: '721', name: 'Banco Credibel', shortName: 'Credibel' },
+  { code: '734', name: 'Banco Gerdau', shortName: 'Gerdau' },
+  { code: '740', name: 'Banco Barclays', shortName: 'Barclays' },
+  { code: '741', name: 'Banco Ribeirão Preto', shortName: 'Ribeirão Preto' },
+  { code: '743', name: 'Banco Semear', shortName: 'Semear' },
+  { code: '746', name: 'Banco Modal', shortName: 'Modal' },
+  { code: '747', name: 'Banco Rabobank', shortName: 'Rabobank' },
+  { code: '751', name: 'Banco Scotiabank', shortName: 'Scotiabank' },
+  { code: '752', name: 'Banco BNP Paribas', shortName: 'BNP' },
+  { code: '753', name: 'NBC Bank Brasil', shortName: 'NBC' },
+  { code: '755', name: 'Bank of America Merrill Lynch', shortName: 'BoA' },
+];
+
+// ========== FORMATAÇÃO DE MOEDA ==========
+export const formatCurrencyInput = (value) => {
+  let cleaned = value.replace(/[^\d.,]/g, '');
+  let normalized = cleaned.replace(',', '.');
+  const parts = normalized.split('.');
+  if (parts.length > 2) {
+    normalized = parts[0] + '.' + parts.slice(1).join('');
+  }
+  const displayValue = normalized.replace('.', ',');
+  return displayValue;
+};
+
+export const parseCurrencyToNumber = (value) => {
+  if (!value) return 0;
+  const normalized = value.replace(/\./g, '').replace(',', '.');
+  return parseFloat(normalized) || 0;
+};
+
+// ========== FORMATAÇÃO DE DATA ==========
 export const formatCurrency = (value) => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -135,6 +272,7 @@ export const formatInvoiceMonth = (invoiceMonthStr) => {
   return format(date, "MMMM 'de' yyyy", { locale: ptBR });
 };
 
+// ========== CARTÕES ==========
 export const getCardGradientColors = (gradientClass) => {
   const gradients = {
     'card-gradient-purple': ['#4C1D95', '#7C3AED', '#A855F7'],

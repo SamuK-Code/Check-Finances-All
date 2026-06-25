@@ -258,7 +258,7 @@ const SettingsScreen = () => {
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: t('settings.clear'),
+          text: t('common.confirm'),
           style: 'destructive',
           onPress: () => {
             Alert.alert(

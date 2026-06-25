@@ -26,7 +26,8 @@ const HomeScreen = () => {
     cards, transactions, getBalance, getCardUsage,
     notifications, cardInvoices, getCardPendingInvoices,
     mergedCards, mergedTransactions, mergedGoals,
-    isSharedItem, getItemShareInfo
+    isSharedItem, getItemShareInfo,
+    cashBalance, goals,
   } = useApp();
   const { colors, darkMode } = useTheme();
   const { t } = useTranslate();
@@ -34,7 +35,8 @@ const HomeScreen = () => {
     currentCircle,
     myCircles,
     unreadActivityCount,
-    syncEnabled
+    syncEnabled,
+    switchCircle,
   } = useCircle();
 
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
@@ -64,24 +66,26 @@ const HomeScreen = () => {
   }, [currentCircle, transactions, mergedTransactions]);
 
   const displayGoals = useMemo(() => {
-    if (!currentCircle) return [];
+    if (!currentCircle) return goals || [];
     return (mergedGoals || []).filter(g => !g._circleId || g._circleId === currentCircle.id);
-  }, [currentCircle, mergedGoals]);
+  }, [currentCircle, goals, mergedGoals]);
 
   // ── BALANÇO UNIFICADO ──
   const unifiedBalance = useMemo(() => {
     const allTx = displayTransactions || [];
     const income = allTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
-    const expense = allTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
-    return { income, expense, balance: income - expense };
-  }, [displayTransactions]);
+    const expense = allTx
+      .filter(t => t.type === 'expense' && !(t.paymentMethod === 'card' && t.cardType === 'credit'))
+      .reduce((s, t) => s + (t.amount || 0), 0);
+    return { income, expense, balance: cashBalance };
+  }, [displayTransactions, cashBalance]);
 
   const { income, expense, balance } = unifiedBalance;
 
   // ── NOTIFICAÇÕES ──
   const unreadCount = (notifications || []).filter(n => !n.read).length;
 
-  // ── FATURAS PENDENTES (apenas cartões locais do círculo) ──
+  // ── FATURAS PENDENTES ──
   const pendingInvoices = useMemo(() => {
     return (cardInvoices || []).filter(inv => inv.status === 'pending');
   }, [cardInvoices]);
@@ -95,10 +99,14 @@ const HomeScreen = () => {
 
   // ── METAS DO CÍRCULO ──
   const activeGoals = useMemo(() => {
-    return (displayGoals || []).filter(g => !g.completed && (g.currentAmount || 0) < (g.targetAmount || 0));
+    return (displayGoals || []).filter(g => {
+      const current = g.currentAmount || g.current || 0;
+      const target = g.targetAmount || g.target || 0;
+      return !g.completed && current < target;
+    });
   }, [displayGoals]);
 
-  // ── ÚLTIMAS TRANSAÇÕES (unificadas) ──
+  // ── ÚLTIMAS TRANSAÇÕES ──
   const recentTransactions = useMemo(() => {
     return [...(displayTransactions || [])]
       .sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt))
@@ -132,6 +140,12 @@ const HomeScreen = () => {
     );
   };
 
+  // ✅ CORREÇÃO: Handler para trocar de círculo
+  const handleSwitchCircle = (circleId) => {
+    switchCircle(circleId);
+    setShowCircleSelector(false);
+  };
+
   // ── RENDER ──
   return (
     <ScrollView
@@ -163,9 +177,10 @@ const HomeScreen = () => {
           {/* Seletor de Círculo (expandível) */}
           {showCircleSelector && (myCircles || []).length > 0 && (
             <View style={[styles.circleSelector, { backgroundColor: darkMode ? colors.bgCard : colors.bgCard, shadowColor: colors.shadow }]}>
+              {/* ✅ CORREÇÃO: Meus Dados — chama switchCircle(null) */}
               <TouchableOpacity
                 style={[styles.circleOption, !currentCircle && styles.circleOptionActive]}
-                onPress={() => { setShowCircleSelector(false); }}
+                onPress={() => handleSwitchCircle(null)}
               >
                 <Ionicons name="person-outline" size={18} color={!currentCircle ? colors.primary : colors.textPrimary} />
                 <Text style={[styles.circleOptionText, { color: !currentCircle ? colors.primary : colors.textPrimary }]}>
@@ -173,11 +188,12 @@ const HomeScreen = () => {
                 </Text>
                 {!currentCircle && <Ionicons name="checkmark" size={16} color={colors.primary} />}
               </TouchableOpacity>
+              {/* ✅ CORREÇÃO: Cada círculo chama handleSwitchCircle(circle.id) */}
               {(myCircles || []).map(circle => (
                 <TouchableOpacity
                   key={circle.id}
                   style={[styles.circleOption, currentCircle?.id === circle.id && styles.circleOptionActive]}
-                  onPress={() => { setShowCircleSelector(false); }}
+                  onPress={() => handleSwitchCircle(circle.id)}
                 >
                   <Ionicons name="people-outline" size={18} color={currentCircle?.id === circle.id ? colors.primary : colors.textPrimary} />
                   <Text style={[styles.circleOptionText, { color: currentCircle?.id === circle.id ? colors.primary : colors.textPrimary }]}>
@@ -231,13 +247,13 @@ const HomeScreen = () => {
         <View style={styles.quickStats}>
           <View style={styles.quickStatItem}>
             <Ionicons name="arrow-up-circle" size={16} color={colors.success} />
-            <Text style={[styles.quickStatLabel, { color: 'rgba(255,255,255,0.6)' }]}>{t('add.income')}</Text>
+            <Text style={[styles.quickStatLabel, { color: 'rgba(255,255,255,0.6)' }]}>{t('common.income')}</Text>
             <Text style={[styles.quickStatValue, { color: '#FFF' }]}>{formatCurrency(income)}</Text>
           </View>
           <View style={styles.quickStatDivider} />
           <View style={styles.quickStatItem}>
             <Ionicons name="arrow-down-circle" size={16} color={colors.danger} />
-            <Text style={[styles.quickStatLabel, { color: 'rgba(255,255,255,0.6)' }]}>{t('add.expense')}</Text>
+            <Text style={[styles.quickStatLabel, { color: 'rgba(255,255,255,0.6)' }]}>{t('common.expense')}</Text>
             <Text style={[styles.quickStatValue, { color: '#FFF' }]}>{formatCurrency(expense)}</Text>
           </View>
         </View>
@@ -317,8 +333,8 @@ const HomeScreen = () => {
           </ScrollView>
         </View>
 
-        {/* ── SEÇÃO: METAS ATIVAS (se houver círculo) ── */}
-        {currentCircle && (activeGoals || []).length > 0 && (
+        {/* ── SEÇÃO: METAS ATIVAS ── */}
+        {(activeGoals || []).length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
@@ -330,7 +346,7 @@ const HomeScreen = () => {
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {(activeGoals || []).slice(0, 3).map(goal => {
-                const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
+                const progress = (goal.targetAmount || goal.target || 0) > 0 ? ((goal.currentAmount || goal.current || 0) / (goal.targetAmount || goal.target || 0)) * 100 : 0;
                 return (
                   <TouchableOpacity
                     key={goal.id}
@@ -343,7 +359,7 @@ const HomeScreen = () => {
                     </View>
                     <Text style={[styles.goalCardName, { color: colors.textPrimary }]} numberOfLines={1}>{goal.name}</Text>
                     <Text style={[styles.goalCardAmount, { color: colors.textMuted }]}>
-                      {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
+                      {formatCurrency(goal.currentAmount || goal.current || 0)} / {formatCurrency(goal.targetAmount || goal.target || 0)}
                     </Text>
                     <View style={[styles.goalProgressBar, { backgroundColor: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }]}>
                       <View style={[styles.goalProgressFill, {
@@ -415,7 +431,7 @@ const HomeScreen = () => {
           )}
         </View>
 
-        {/* ── SEÇÃO: BOLETOS PENDENTES (se houver) ── */}
+        {/* ── SEÇÃO: BOLETOS PENDENTES ── */}
         {(pendingBoletos || []).length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -442,7 +458,7 @@ const HomeScreen = () => {
           </View>
         )}
 
-        {/* ── SEÇÃO: RESUMO DO CÍRCULO (se ativo) ── */}
+        {/* ── SEÇÃO: RESUMO DO CÍRCULO ── */}
         {currentCircle && (
           <View style={[styles.circleSummary, { backgroundColor: darkMode ? colors.bgCard : colors.bgTertiary }]}>
             <View style={styles.circleSummaryHeader}>
@@ -476,7 +492,7 @@ const HomeScreen = () => {
             </View>
             <TouchableOpacity
               style={[styles.circleManageBtn, { borderColor: colors.primary }]}
-              onPress={() => navigation.navigate('CircleHub')}
+              onPress={() => navigation.navigate('Circles')}
             >
               <Text style={[styles.circleManageText, { color: colors.primary }]}>
                 {t('common.manage')} {t('tab.groups')}
